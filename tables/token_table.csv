@@ -1,0 +1,17 @@
+1,25,period
+2,24,read op
+3,23,write op
+4,4,comma
+5,1,identifier
+6,13,semicolon
+8,5,define equals
+9,21,comparator
+10,21,comparator
+11,6,equals
+12,20,mul op
+13,19,add op
+14,3,number
+15,27,whitespace
+18,9,odd op
+19,7,(
+20,8,)
