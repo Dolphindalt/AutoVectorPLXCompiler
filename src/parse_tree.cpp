@@ -4,44 +4,58 @@
 #include <parse_tree.h>
 
 #include <stack>
+#include <iostream>
+#include <set>
 
 template<class T>
 PTNode<T>::PTNode(const T value): value(value) {}
 
 template<class T>
 PTNode<T>::~PTNode() {
-    // Ensure the reference counters are decremented.
-    // Also, never leave dangling pointers!
-    this->left = nullptr;
-    this->right = nullptr;
+    this->children.erase(this->children.begin(), this->children.end());
 }
 
 template<class T>
-void PTNode<T>::inorderTraversal(
-    const PTPtr<T> root, 
+void PTNode<T>::dfsTraversal(
+    const PTPtr<T> node, 
     const std::function<void(T)> action
 ) {
-    if (root == nullptr) {
+    if (node == nullptr) {
         return;
     }
 
-    std::stack<PTPtr<T>> nodes;
-    PTPtr<T> current = root;
+    std::set<PTPtr<T>> visited;
+    visited.insert(node);
 
-    while (!nodes.empty() || current != nullptr) {
-        if (current != nullptr) {
-            nodes.push(current);
-            current = current->getLeft();
+    std::stack<PTPtr<T>> stack;
+    stack.push(node);
+
+    while (!stack.empty()) {
+        PTPtr<T> current = stack.top();
+        stack.pop();
+
+        action(current->getValue());
+
+        int neighbors = current->getChildren().size();
+        for (int i = 0; i < neighbors; i++) {
+
+            PTPtr<T> child = current->getChildren().at(i);
+            if (visited.find(child) != visited.end()) {
+                stack.push(child);
+                visited.insert(child);
+            }
+
+            child = nullptr;
         }
-        else {
-            current = nodes.top();
-            nodes.pop();
-            action(current->getValue());
-            current = current->getRight();
-        }
+
+        current = nullptr;
     }
+}
 
-    current = nullptr;
+template<class T>
+void PTNode<T>::printTree(PTPtr<T> root, int treeSize) {
+    std::vector<bool> flag(treeSize, true);
+    PTNode<T>::printNTree(root, flag, 0, false);
 }
 
 template<class T>
@@ -50,23 +64,58 @@ T PTNode<T>::getValue() const {
 }
 
 template<class T>
-PTPtr<T> PTNode<T>::getLeft() const {
-    return this->left;
+const std::vector<PTPtr<T>> &PTNode<T>::getChildren() const {
+    return this->children;
 }
 
 template<class T>
-void PTNode<T>::setLeft(const PTPtr<T> left) {
-    this->left = left;
+const void PTNode<T>::addChild(const PTPtr<T> node) {
+    this->children.push_back(node);
 }
 
 template<class T>
-PTPtr<T> PTNode<T>::getRight() const {
-    return this->right;
-}
+void PTNode<T>::printNTree(
+    PTPtr<T> node, 
+    std::vector<bool> flag, 
+    int depth,
+    bool isLast
+) {
+    if (node == nullptr) {
+        return;
+    }
 
-template<class T>
-void PTNode<T>::setRight(const PTPtr<T> right) {
-    this->right = right;
+    for (int i = 1; i < depth; i++) {
+        if (flag[i] == true) {
+            std::cout << "|    ";
+        } else {
+            std::cout << "    ";
+        }
+    }
+
+    if (depth == 0) {
+        std::cout << node->getValue() << std::endl;
+    } else if (isLast) {
+        std::cout << "+--- " << node->getValue() << std::endl;
+        flag[depth] = false;
+    } else {
+        std::cout << "+--- " << node->getValue() << std::endl;
+    }
+
+    size_t it = 0;
+    for (
+        auto itr = node->getChildren().begin(); 
+        itr != node->getChildren().end();
+        itr++, it++
+    ) {
+        PTNode<T>::printNTree(
+            *itr, 
+            flag, 
+            depth + 1, 
+            it == (node->getChildren().size() - 1)
+        );
+    }
+
+    flag[depth] = true;
 }
 
 #endif

@@ -12,8 +12,9 @@ Parser::Parser(const token_stream_t &tokens)
 
 Parser::~Parser() {}
 
-void Parser::parse() {
+ParseTree<std::string> Parser::parse() {
     this->parseProgram();
+    return this->parse_tree;
 }
 
 token_t Parser::getNextToken() {

@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <vector>
 
 // Forward declaration for alias.
 template<class T>
@@ -23,22 +24,28 @@ public:
     PTNode(const T value);
     virtual ~PTNode();
 
-    static void inorderTraversal(
+    static void dfsTraversal(
         PTPtr<T> root, 
         const std::function<void(T)> action
     );
 
+    static void printTree(PTPtr<T> root, int treeSize);
+
     T getValue() const;
 
-    PTPtr<T> getLeft() const;
-    void setLeft(const PTPtr<T> left);
+    const std::vector<PTPtr<T>> &getChildren() const;
 
-    PTPtr<T> getRight() const;
-    void setRight(const PTPtr<T> right);
+    const void addChild(const PTPtr<T> node);
 private:
+    static void printNTree(
+        PTPtr<T> node,
+        std::vector<bool> flag, 
+        int depth = 0,
+        bool isLast = false
+    );
+
     T value;
-    PTPtr<T> left = nullptr;
-    PTPtr<T> right = nullptr;
+    std::vector<PTPtr<T>> children;
 };
 
 #include <parse_tree.cpp>

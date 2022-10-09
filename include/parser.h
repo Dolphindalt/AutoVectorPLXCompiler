@@ -18,7 +18,7 @@ public:
     Parser(const token_stream_t &tokens);
     virtual ~Parser();
 
-    void parse();
+    ParseTree<std::string> parse();
 private:
     token_t getNextToken();
     token_t peekNextToken() const;
@@ -58,6 +58,7 @@ private:
 
     const token_stream_t tokens;
     unsigned int current_token = 0;
+    ParseTree<std::string> parse_tree;
 };
 
 #endif
