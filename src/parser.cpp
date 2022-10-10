@@ -35,7 +35,7 @@ token_t Parser::peekNextToken() const {
 
 PTPtr<std::string> Parser::parseProgram() {
     PTPtr<std::string> programNode = 
-        std::make_shared<PTNode<std::string>>("PROGRAM");
+        std::make_shared<PTNode<std::string>>("program");
     
     programNode->addChild(this->parseBlock());
 
@@ -45,7 +45,7 @@ PTPtr<std::string> Parser::parseProgram() {
 
 PTPtr<std::string> Parser::parseBlock() {
     PTPtr<std::string> blockNode = 
-        std::make_shared<PTNode<std::string>>("BLOCK");
+        std::make_shared<PTNode<std::string>>("block");
 
     token_t token = this->peekNextToken();
 
@@ -72,7 +72,7 @@ PTPtr<std::string> Parser::parseBlock() {
 
 PTPtr<std::string> Parser::parseConstDeclarations() {
     PTPtr<std::string> constDeclNode = 
-        std::make_shared<PTNode<std::string>>("CONST_DECLARATION");
+        std::make_shared<PTNode<std::string>>("const_declaration");
 
     this->tryMatchTerminal(this->getNextToken(), CONST_KEYWORD, constDeclNode);
 
@@ -96,7 +96,7 @@ PTPtr<std::string> Parser::parseConstDeclarations() {
 
 PTPtr<std::string> Parser::parseConstDeclarationList() {
     PTPtr<std::string> constDeclListNode = 
-        std::make_shared<PTNode<std::string>>("CONST_DECLARATION_LIST");
+        std::make_shared<PTNode<std::string>>("const_declaration_list");
 
     this->tryMatchTerminal(this->getNextToken(), COMMA, constDeclListNode);
 
@@ -112,7 +112,7 @@ PTPtr<std::string> Parser::parseConstDeclarationList() {
 
 PTPtr<std::string> Parser::parseVarDeclarations() {
     PTPtr<std::string> varDeclNode = 
-        std::make_shared<PTNode<std::string>>("VAR_DECLARATION");
+        std::make_shared<PTNode<std::string>>("var_declaration");
 
     this->tryMatchTerminal(this->getNextToken(), VAR_KEYWORD, varDeclNode);
     token_t identifier = this->getNextToken();
@@ -130,7 +130,7 @@ PTPtr<std::string> Parser::parseVarDeclarations() {
 
 PTPtr<std::string> Parser::parseVarDeclarationList() {
     PTPtr<std::string> varDeclNodeList = 
-        std::make_shared<PTNode<std::string>>("VAR_DECLARATION_LIST");
+        std::make_shared<PTNode<std::string>>("var_declaration_list");
     
     this->tryMatchTerminal(this->getNextToken(), COMMA, varDeclNodeList);
 
@@ -142,7 +142,7 @@ PTPtr<std::string> Parser::parseVarDeclarationList() {
 
 PTPtr<std::string> Parser::parseProcedure() {
     PTPtr<std::string> procedure = 
-        std::make_shared<PTNode<std::string>>("PROCEDURE");
+        std::make_shared<PTNode<std::string>>("procedure");
     
     this->tryMatchTerminal(this->getNextToken(), PROCEDURE_KEYWORD, procedure);
 
@@ -159,7 +159,7 @@ PTPtr<std::string> Parser::parseProcedure() {
 
 PTPtr<std::string> Parser::parseStatement() {
     PTPtr<std::string> statementNode = 
-        std::make_shared<PTNode<std::string>>("STATEMENT");
+        std::make_shared<PTNode<std::string>>("statement");
 
     const token_t token = this->peekNextToken();
     switch (token.type) {
@@ -230,7 +230,7 @@ PTPtr<std::string> Parser::parseStatement() {
 
 PTPtr<std::string> Parser::parseCondition() {
     PTPtr<std::string> conditionNode = 
-        std::make_shared<PTNode<std::string>>("CONDITION");
+        std::make_shared<PTNode<std::string>>("condition");
 
     const token_t token = this->peekNextToken();
     switch (token.type) {
@@ -251,7 +251,7 @@ PTPtr<std::string> Parser::parseCondition() {
 
 PTPtr<std::string> Parser::parseExpression() {
     PTPtr<std::string> expressionNode = 
-        std::make_shared<PTNode<std::string>>("EXPRESSION");
+        std::make_shared<PTNode<std::string>>("expression");
 
     // Optional plus and minus.
     const token_t unaryOp = this->peekNextToken();
@@ -272,7 +272,7 @@ PTPtr<std::string> Parser::parseExpression() {
 }
 
 PTPtr<std::string> Parser::parseTerm() {
-    PTPtr<std::string> termNode = std::make_shared<PTNode<std::string>>("TERM");
+    PTPtr<std::string> termNode = std::make_shared<PTNode<std::string>>("term");
 
     termNode->addChild(this->parseFactor());
 
@@ -287,7 +287,7 @@ PTPtr<std::string> Parser::parseTerm() {
 
 PTPtr<std::string> Parser::parseFactor() {
     PTPtr<std::string> factorNode = 
-        std::make_shared<PTNode<std::string>>("FACTOR");
+        std::make_shared<PTNode<std::string>>("factor");
 
     const token_t token = this->peekNextToken();
     switch (token.type) {

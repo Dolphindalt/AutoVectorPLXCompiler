@@ -15,80 +15,80 @@
  * manully debug this test case. PTNode::printTree will produce the following 
  * tree if the implementation is correct.
  * 
- *   PROGRAM
- *   +--- BLOCK
- *   |    +--- VAR_DECLARATION
+ *   program
+ *   +--- block
+ *   |    +--- var_declaration
  *   |    |    +--- var
  *   |    |    +--- x
- *   |    |    +--- VAR_DECLARATION_LIST
+ *   |    |    +--- var_declaration_list
  *   |    |    |    +--- ,
  *   |    |    |    +--- squ
  *   |    |    +--- ;
- *   |    +--- PROCEDURE
+ *   |    +--- procedure
  *   |    |    +--- procedure
  *   |    |    +--- square
  *   |    |    +--- ;
- *   |    |    +--- BLOCK
- *   |    |    |    +--- STATEMENT
+ *   |    |    +--- block
+ *   |    |    |    +--- statement
  *   |    |    |        +--- begin
- *   |    |    |        +--- STATEMENT
+ *   |    |    |        +--- statement
  *   |    |    |        |    +--- squ
  *   |    |    |        |    +--- :=
- *   |    |    |        |    +--- EXPRESSION
- *   |    |    |        |        +--- TERM
- *   |    |    |        |            +--- FACTOR
+ *   |    |    |        |    +--- expression
+ *   |    |    |        |        +--- term
+ *   |    |    |        |            +--- factor
  *   |    |    |        |            |    +--- x
  *   |    |    |        |            +--- *
- *   |    |    |        |            +--- FACTOR
+ *   |    |    |        |            +--- factor
  *   |    |    |        |                +--- x
  *   |    |    |        +--- end
  *   |    |    +--- ;
- *   |    +--- STATEMENT
+ *   |    +--- statement
  *   |        +--- begin
- *   |        +--- STATEMENT
+ *   |        +--- statement
  *   |        |    +--- x
  *   |        |    +--- :=
- *   |        |    +--- EXPRESSION
- *   |        |        +--- TERM
- *   |        |            +--- FACTOR
+ *   |        |    +--- expression
+ *   |        |        +--- term
+ *   |        |            +--- factor
  *   |        |                +--- 1
  *   |        +--- ;
- *   |        +--- STATEMENT
+ *   |        +--- statement
  *   |        |    +--- while
- *   |        |    +--- CONDITION
- *   |        |    |    +--- EXPRESSION
- *   |        |    |    |    +--- TERM
- *   |        |    |    |        +--- FACTOR
+ *   |        |    +--- condition
+ *   |        |    |    +--- expression
+ *   |        |    |    |    +--- term
+ *   |        |    |    |        +--- factor
  *   |        |    |    |            +--- x
  *   |        |    |    +--- <=
- *   |        |    |    +--- EXPRESSION
- *   |        |    |        +--- TERM
- *   |        |    |            +--- FACTOR
+ *   |        |    |    +--- expression
+ *   |        |    |        +--- term
+ *   |        |    |            +--- factor
  *   |        |    |                +--- 10
  *   |        |    +--- do
- *   |        |    +--- STATEMENT
+ *   |        |    +--- statement
  *   |        |        +--- begin
- *   |        |        +--- STATEMENT
+ *   |        |        +--- statement
  *   |        |        |    +--- call
  *   |        |        |    +--- square
  *   |        |        +--- ;
- *   |        |        +--- STATEMENT
+ *   |        |        +--- statement
  *   |        |        |    +--- !
- *   |        |        |    +--- EXPRESSION
- *   |        |        |        +--- TERM
- *   |        |        |            +--- FACTOR
+ *   |        |        |    +--- expression
+ *   |        |        |        +--- term
+ *   |        |        |            +--- factor
  *   |        |        |                +--- squ
  *   |        |        +--- ;
- *   |        |        +--- STATEMENT
+ *   |        |        +--- statement
  *   |        |        |    +--- x
  *   |        |        |    +--- :=
- *   |        |        |    +--- EXPRESSION
- *   |        |        |        +--- TERM
- *   |        |        |        |    +--- FACTOR
+ *   |        |        |    +--- expression
+ *   |        |        |        +--- term
+ *   |        |        |        |    +--- factor
  *   |        |        |        |        +--- x
  *   |        |        |        +--- +
- *   |        |        |        +--- TERM
- *   |        |        |            +--- FACTOR
+ *   |        |        |        +--- term
+ *   |        |        |            +--- factor
  *   |        |        |                +--- 1
  *   |        |        +--- end
  *   |        +--- end
@@ -105,16 +105,16 @@ TEST_CASE("Smoke Test 1", "[Parser]") {
     ParseTree<std::string> parse_tree = parser.parse();
 
     std::vector<std::string> expected = {
-        "PROGRAM", ".", "BLOCK", "STATEMENT", "end", "STATEMENT", "STATEMENT",
-        "end", "STATEMENT", "EXPRESSION", "TERM", "FACTOR", "1", "+", "TERM",
-        "FACTOR", "x", ":=", "x", ";", "STATEMENT", "EXPRESSION", "TERM",
-        "FACTOR", "squ", "!", ";", "STATEMENT", "square", "call", "begin",
-        "do", "CONDITION", "EXPRESSION", "TERM", "FACTOR", "10", "<=",
-        "EXPRESSION", "TERM", "FACTOR", "x", "while", ";", "STATEMENT",
-        "EXPRESSION", "TERM", "FACTOR", "1", ":=", "x", "begin", "PROCEDURE",
-        ";", "BLOCK", "STATEMENT", "end", "STATEMENT", "EXPRESSION", "TERM",
-        "FACTOR", "x", "*", "FACTOR", "x", ":=", "squ", "begin", ";", "square",
-        "procedure", "VAR_DECLARATION", ";", "VAR_DECLARATION_LIST", "squ", ",",
+        "program", ".", "block", "statement", "end", "statement", "statement",
+        "end", "statement", "expression", "term", "factor", "1", "+", "term",
+        "factor", "x", ":=", "x", ";", "statement", "expression", "term",
+        "factor", "squ", "!", ";", "statement", "square", "call", "begin",
+        "do", "condition", "expression", "term", "factor", "10", "<=",
+        "expression", "term", "factor", "x", "while", ";", "statement",
+        "expression", "term", "factor", "1", ":=", "x", "begin", "procedure",
+        ";", "block", "statement", "end", "statement", "expression", "term",
+        "factor", "x", "*", "factor", "x", ":=", "squ", "begin", ";", "square",
+        "procedure", "var_declaration", ";", "var_declaration_list", "squ", ",",
         "x", "var"
     };
     size_t index = 0;
@@ -137,184 +137,184 @@ TEST_CASE("Smoke Test 1", "[Parser]") {
  * checks. It is up to you to ensure the proper tree is produced. Here is what 
  * the tree should look like when printed with PTNode::treePrint.
  * 
- *   PROGRAM
- *   +--- BLOCK
+ *   program
+ *   +--- block
  *   |    +--- CONST_DECLARATION
  *   |    |    +--- const
  *   |    |    +--- max
  *   |    |    +--- =
  *   |    |    +--- 100
  *   |    |    +--- ;
- *   |    +--- VAR_DECLARATION
+ *   |    +--- var_declaration
  *   |    |    +--- var
  *   |    |    +--- arg
- *   |    |    +--- VAR_DECLARATION_LIST
+ *   |    |    +--- var_declaration_list
  *   |    |    |    +--- ,
  *   |    |    |    +--- ret
  *   |    |    +--- ;
- *   |    +--- PROCEDURE
+ *   |    +--- procedure
  *   |    |    +--- procedure
  *   |    |    +--- isprime
  *   |    |    +--- ;
- *   |    |    +--- BLOCK
- *   |    |    |    +--- VAR_DECLARATION
+ *   |    |    +--- block
+ *   |    |    |    +--- var_declaration
  *   |    |    |    |    +--- var
  *   |    |    |    |    +--- i
  *   |    |    |    |    +--- ;
- *   |    |    |    +--- STATEMENT
+ *   |    |    |    +--- statement
  *   |    |    |        +--- begin
- *   |    |    |        +--- STATEMENT
+ *   |    |    |        +--- statement
  *   |    |    |        |    +--- ret
  *   |    |    |        |    +--- :=
- *   |    |    |        |    +--- EXPRESSION
- *   |    |    |        |        +--- TERM
- *   |    |    |        |            +--- FACTOR
+ *   |    |    |        |    +--- expression
+ *   |    |    |        |        +--- term
+ *   |    |    |        |            +--- factor
  *   |    |    |        |                +--- 1
  *   |    |    |        +--- ;
- *   |    |    |        +--- STATEMENT
+ *   |    |    |        +--- statement
  *   |    |    |        |    +--- i
  *   |    |    |        |    +--- :=
- *   |    |    |        |    +--- EXPRESSION
- *   |    |    |        |        +--- TERM
- *   |    |    |        |            +--- FACTOR
+ *   |    |    |        |    +--- expression
+ *   |    |    |        |        +--- term
+ *   |    |    |        |            +--- factor
  *   |    |    |        |                +--- 2
  *   |    |    |        +--- ;
- *   |    |    |        +--- STATEMENT
+ *   |    |    |        +--- statement
  *   |    |    |        |    +--- while
- *   |    |    |        |    +--- CONDITION
- *   |    |    |        |    |    +--- EXPRESSION
- *   |    |    |        |    |    |    +--- TERM
- *   |    |    |        |    |    |        +--- FACTOR
+ *   |    |    |        |    +--- condition
+ *   |    |    |        |    |    +--- expression
+ *   |    |    |        |    |    |    +--- term
+ *   |    |    |        |    |    |        +--- factor
  *   |    |    |        |    |    |            +--- i
  *   |    |    |        |    |    +--- <
- *   |    |    |        |    |    +--- EXPRESSION
- *   |    |    |        |    |        +--- TERM
- *   |    |    |        |    |            +--- FACTOR
+ *   |    |    |        |    |    +--- expression
+ *   |    |    |        |    |        +--- term
+ *   |    |    |        |    |            +--- factor
  *   |    |    |        |    |                +--- arg
  *   |    |    |        |    +--- do
- *   |    |    |        |    +--- STATEMENT
+ *   |    |    |        |    +--- statement
  *   |    |    |        |        +--- begin
- *   |    |    |        |        +--- STATEMENT
+ *   |    |    |        |        +--- statement
  *   |    |    |        |        |    +--- if
- *   |    |    |        |        |    +--- CONDITION
- *   |    |    |        |        |    |    +--- EXPRESSION
- *   |    |    |        |        |    |    |    +--- TERM
- *   |    |    |        |        |    |    |        +--- FACTOR
+ *   |    |    |        |        |    +--- condition
+ *   |    |    |        |        |    |    +--- expression
+ *   |    |    |        |        |    |    |    +--- term
+ *   |    |    |        |        |    |    |        +--- factor
  *   |    |    |        |        |    |    |        |    +--- arg
  *   |    |    |        |        |    |    |        +--- /
- *   |    |    |        |        |    |    |        +--- FACTOR
+ *   |    |    |        |        |    |    |        +--- factor
  *   |    |    |        |        |    |    |        |    +--- i
  *   |    |    |        |        |    |    |        +--- *
- *   |    |    |        |        |    |    |        +--- FACTOR
+ *   |    |    |        |        |    |    |        +--- factor
  *   |    |    |        |        |    |    |            +--- i
  *   |    |    |        |        |    |    +--- =
- *   |    |    |        |        |    |    +--- EXPRESSION
- *   |    |    |        |        |    |        +--- TERM
- *   |    |    |        |        |    |            +--- FACTOR
+ *   |    |    |        |        |    |    +--- expression
+ *   |    |    |        |        |    |        +--- term
+ *   |    |    |        |        |    |            +--- factor
  *   |    |    |        |        |    |                +--- arg
  *   |    |    |        |        |    +--- then
- *   |    |    |        |        |    +--- STATEMENT
+ *   |    |    |        |        |    +--- statement
  *   |    |    |        |        |        +--- begin
- *   |    |    |        |        |        +--- STATEMENT
+ *   |    |    |        |        |        +--- statement
  *   |    |    |        |        |        |    +--- ret
  *   |    |    |        |        |        |    +--- :=
- *   |    |    |        |        |        |    +--- EXPRESSION
- *   |    |    |        |        |        |        +--- TERM
- *   |    |    |        |        |        |            +--- FACTOR
+ *   |    |    |        |        |        |    +--- expression
+ *   |    |    |        |        |        |        +--- term
+ *   |    |    |        |        |        |            +--- factor
  *   |    |    |        |        |        |                +--- 0
  *   |    |    |        |        |        +--- ;
- *   |    |    |        |        |        +--- STATEMENT
+ *   |    |    |        |        |        +--- statement
  *   |    |    |        |        |        |    +--- i
  *   |    |    |        |        |        |    +--- :=
- *   |    |    |        |        |        |    +--- EXPRESSION
- *   |    |    |        |        |        |        +--- TERM
- *   |    |    |        |        |        |            +--- FACTOR
+ *   |    |    |        |        |        |    +--- expression
+ *   |    |    |        |        |        |        +--- term
+ *   |    |    |        |        |        |            +--- factor
  *   |    |    |        |        |        |                +--- arg
  *   |    |    |        |        |        +--- end
  *   |    |    |        |        +--- ;
- *   |    |    |        |        +--- STATEMENT
+ *   |    |    |        |        +--- statement
  *   |    |    |        |        |    +--- i
  *   |    |    |        |        |    +--- :=
- *   |    |    |        |        |    +--- EXPRESSION
- *   |    |    |        |        |        +--- TERM
- *   |    |    |        |        |        |    +--- FACTOR
+ *   |    |    |        |        |    +--- expression
+ *   |    |    |        |        |        +--- term
+ *   |    |    |        |        |        |    +--- factor
  *   |    |    |        |        |        |        +--- i
  *   |    |    |        |        |        +--- +
- *   |    |    |        |        |        +--- TERM
- *   |    |    |        |        |            +--- FACTOR
+ *   |    |    |        |        |        +--- term
+ *   |    |    |        |        |            +--- factor
  *   |    |    |        |        |                +--- 1
  *   |    |    |        |        +--- end
  *   |    |    |        +--- end
  *   |    |    +--- ;
- *   |    +--- PROCEDURE
+ *   |    +--- procedure
  *   |    |    +--- procedure
  *   |    |    +--- primes
  *   |    |    +--- ;
- *   |    |    +--- BLOCK
- *   |    |    |    +--- STATEMENT
+ *   |    |    +--- block
+ *   |    |    |    +--- statement
  *   |    |    |        +--- begin
- *   |    |    |        +--- STATEMENT
+ *   |    |    |        +--- statement
  *   |    |    |        |    +--- arg
  *   |    |    |        |    +--- :=
- *   |    |    |        |    +--- EXPRESSION
- *   |    |    |        |        +--- TERM
- *   |    |    |        |            +--- FACTOR
+ *   |    |    |        |    +--- expression
+ *   |    |    |        |        +--- term
+ *   |    |    |        |            +--- factor
  *   |    |    |        |                +--- 2
  *   |    |    |        +--- ;
- *   |    |    |        +--- STATEMENT
+ *   |    |    |        +--- statement
  *   |    |    |        |    +--- while
- *   |    |    |        |    +--- CONDITION
- *   |    |    |        |    |    +--- EXPRESSION
- *   |    |    |        |    |    |    +--- TERM
- *   |    |    |        |    |    |        +--- FACTOR
+ *   |    |    |        |    +--- condition
+ *   |    |    |        |    |    +--- expression
+ *   |    |    |        |    |    |    +--- term
+ *   |    |    |        |    |    |        +--- factor
  *   |    |    |        |    |    |            +--- arg
  *   |    |    |        |    |    +--- <
- *   |    |    |        |    |    +--- EXPRESSION
- *   |    |    |        |    |        +--- TERM
- *   |    |    |        |    |            +--- FACTOR
+ *   |    |    |        |    |    +--- expression
+ *   |    |    |        |    |        +--- term
+ *   |    |    |        |    |            +--- factor
  *   |    |    |        |    |                +--- max
  *   |    |    |        |    +--- do
- *   |    |    |        |    +--- STATEMENT
+ *   |    |    |        |    +--- statement
  *   |    |    |        |        +--- begin
- *   |    |    |        |        +--- STATEMENT
+ *   |    |    |        |        +--- statement
  *   |    |    |        |        |    +--- call
  *   |    |    |        |        |    +--- isprime
  *   |    |    |        |        +--- ;
- *   |    |    |        |        +--- STATEMENT
+ *   |    |    |        |        +--- statement
  *   |    |    |        |        |    +--- if
- *   |    |    |        |        |    +--- CONDITION
- *   |    |    |        |        |    |    +--- EXPRESSION
- *   |    |    |        |        |    |    |    +--- TERM
- *   |    |    |        |        |    |    |        +--- FACTOR
+ *   |    |    |        |        |    +--- condition
+ *   |    |    |        |        |    |    +--- expression
+ *   |    |    |        |        |    |    |    +--- term
+ *   |    |    |        |        |    |    |        +--- factor
  *   |    |    |        |        |    |    |            +--- ret
  *   |    |    |        |        |    |    +--- =
- *   |    |    |        |        |    |    +--- EXPRESSION
- *   |    |    |        |        |    |        +--- TERM
- *   |    |    |        |        |    |            +--- FACTOR
+ *   |    |    |        |        |    |    +--- expression
+ *   |    |    |        |        |    |        +--- term
+ *   |    |    |        |        |    |            +--- factor
  *   |    |    |        |        |    |                +--- 1
  *   |    |    |        |        |    +--- then
- *   |    |    |        |        |    +--- STATEMENT
+ *   |    |    |        |        |    +--- statement
  *   |    |    |        |        |        +--- !
- *   |    |    |        |        |        +--- EXPRESSION
- *   |    |    |        |        |            +--- TERM
- *   |    |    |        |        |                +--- FACTOR
+ *   |    |    |        |        |        +--- expression
+ *   |    |    |        |        |            +--- term
+ *   |    |    |        |        |                +--- factor
  *   |    |    |        |        |                    +--- arg
  *   |    |    |        |        +--- ;
- *   |    |    |        |        +--- STATEMENT
+ *   |    |    |        |        +--- statement
  *   |    |    |        |        |    +--- arg
  *   |    |    |        |        |    +--- :=
- *   |    |    |        |        |    +--- EXPRESSION
- *   |    |    |        |        |        +--- TERM
- *   |    |    |        |        |        |    +--- FACTOR
+ *   |    |    |        |        |    +--- expression
+ *   |    |    |        |        |        +--- term
+ *   |    |    |        |        |        |    +--- factor
  *   |    |    |        |        |        |        +--- arg
  *   |    |    |        |        |        +--- +
- *   |    |    |        |        |        +--- TERM
- *   |    |    |        |        |            +--- FACTOR
+ *   |    |    |        |        |        +--- term
+ *   |    |    |        |        |            +--- factor
  *   |    |    |        |        |                +--- 1
  *   |    |    |        |        +--- end
  *   |    |    |        +--- end
  *   |    |    +--- ;
- *   |    +--- STATEMENT
+ *   |    +--- statement
  *   |        +--- call
  *   |        +--- primes
  *   +--- .
