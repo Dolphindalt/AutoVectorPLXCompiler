@@ -40,7 +40,7 @@ void PTNode<T>::dfsTraversal(
         for (int i = 0; i < neighbors; i++) {
 
             PTPtr<T> child = current->getChildren().at(i);
-            if (visited.find(child) != visited.end()) {
+            if (visited.find(child) == visited.end()) {
                 stack.push(child);
                 visited.insert(child);
             }
@@ -69,8 +69,16 @@ const std::vector<PTPtr<T>> &PTNode<T>::getChildren() const {
 }
 
 template<class T>
-const void PTNode<T>::addChild(const PTPtr<T> node) {
+PTPtr<T> PTNode<T>::addChild(const PTPtr<T> node) {
     this->children.push_back(node);
+    return node;
+}
+
+template<class T>
+PTPtr<T> PTNode<T>::addChild(const T value) {
+    auto toReturn = std::make_shared<PTNode<T>>(value);
+    this->children.push_back(toReturn);
+    return toReturn;
 }
 
 template<class T>

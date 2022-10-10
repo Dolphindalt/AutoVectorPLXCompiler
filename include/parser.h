@@ -23,27 +23,29 @@ private:
     token_t getNextToken();
     token_t peekNextToken() const;
 
-    void parseProgram();
-    void parseBlock();
-    void parseConstDeclarations();
-    void parseConstDeclarationList();
-    void parseVarDeclarations();
-    void parseVarDeclarationList();
-    void parseProcedure();
-    void parseStatement();
-    void parseCondition();
-    void parseExpression();
-    void parseTerm();
-    void parseFactor();
+    PTPtr<std::string> parseProgram();
+    PTPtr<std::string> parseBlock();
+    PTPtr<std::string> parseConstDeclarations();
+    PTPtr<std::string> parseConstDeclarationList();
+    PTPtr<std::string> parseVarDeclarations();
+    PTPtr<std::string> parseVarDeclarationList();
+    PTPtr<std::string> parseProcedure();
+    PTPtr<std::string> parseStatement();
+    PTPtr<std::string> parseCondition();
+    PTPtr<std::string> parseExpression();
+    PTPtr<std::string> parseTerm();
+    PTPtr<std::string> parseFactor();
 
     void tryMatchTerminal(
         const token_t &actual, 
-        const token_class_t expected
+        const token_class_t expected,
+        PTPtr<std::string> node
     ) const;
 
     void tryMatchTerminal(
         const token_t &actual, 
-        const std::initializer_list<token_class_t> expected
+        const std::initializer_list<token_class_t> expected,
+        PTPtr<std::string> node
     ) const;
 
     void raiseMismatchError(
@@ -58,7 +60,6 @@ private:
 
     const token_stream_t tokens;
     unsigned int current_token = 0;
-    ParseTree<std::string> parse_tree;
 };
 
 #endif

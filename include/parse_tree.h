@@ -35,7 +35,9 @@ public:
 
     const std::vector<PTPtr<T>> &getChildren() const;
 
-    const void addChild(const PTPtr<T> node);
+    PTPtr<T> addChild(const PTPtr<T> node);
+
+    PTPtr<T> addChild(const T value);
 private:
     static void printNTree(
         PTPtr<T> node,

@@ -64,7 +64,10 @@ int main(int argc, char *argv[]) {
 
     Parser parser(tokens);
 
-    parser.parse();
+    ParseTree<std::string> parse_tree = parser.parse();
+
+    const int OVER_ESTIMATE = 2048;
+    PTNode<std::string>::printTree(parse_tree, OVER_ESTIMATE);
 
     return EXIT_SUCCESS;
 }

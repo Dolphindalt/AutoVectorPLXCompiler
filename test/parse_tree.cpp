@@ -10,7 +10,7 @@
 #include <parse_tree.h>
 #include <iostream>
 
-TEST_CASE("Inorder Traversal", "[ParseTree]") {
+TEST_CASE("DFS Traversal", "[ParseTree]") {
 
     PTPtr<int> root = std::make_shared<PTNode<int>>(1);
     root->addChild(std::make_shared<PTNode<int>>(2));
@@ -20,7 +20,7 @@ TEST_CASE("Inorder Traversal", "[ParseTree]") {
     root->getChildren().at(0)->addChild(std::make_shared<PTNode<int>>(5));
     root->getChildren().at(0)->addChild(std::make_shared<PTNode<int>>(6));
 
-    int inorder[6] = { 1, 2, 4, 5, 6, 3 };
+    int inorder[6] = { 1, 3, 2, 6, 5, 4 };
     unsigned int index = 0;
 
     PTNode<int>::dfsTraversal(root, [inorder, &index](int node_value) {
