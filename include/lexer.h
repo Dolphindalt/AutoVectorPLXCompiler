@@ -51,7 +51,9 @@ typedef enum token_class {
     WHITESPACE = 27,
     FLOAT_NUMBER_LITERAL = 28,
     LEFT_SQUARE_BRACKET = 29,
-    RIGHT_SQUARE_BRACKET = 30
+    RIGHT_SQUARE_BRACKET = 30,
+    INT_TYPE_KEYWORD = 31,
+    FLOAT_TYPE_KEYWORD = 32
 } token_class_t;
 
 #define LAZY_TYPE_MAP(type) { type, #type }
@@ -87,7 +89,9 @@ static std::map<token_class_t, std::string> type_to_string = {
     LAZY_TYPE_MAP(WHITESPACE),
     LAZY_TYPE_MAP(FLOAT_NUMBER_LITERAL),
     LAZY_TYPE_MAP(LEFT_SQUARE_BRACKET),
-    LAZY_TYPE_MAP(RIGHT_SQUARE_BRACKET)
+    LAZY_TYPE_MAP(RIGHT_SQUARE_BRACKET),
+    LAZY_TYPE_MAP(INT_TYPE_KEYWORD),
+    LAZY_TYPE_MAP(FLOAT_TYPE_KEYWORD)
 };
 
 /**
@@ -110,7 +114,9 @@ static std::map<std::string, token_class_t> reserved_words = {
     {"then", THEN_KEYWORD},
     {"while", WHILE_KEYWORD},
     {"do", DO_KEYWORD},
-    {"var", VAR_KEYWORD}
+    {"var", VAR_KEYWORD},
+    {"int", INT_TYPE_KEYWORD},
+    {"float", FLOAT_TYPE_KEYWORD}
 };
 
 // Stores a lexeme scanned and the information associated with the lexeme.

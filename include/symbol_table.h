@@ -8,18 +8,23 @@
 
 typedef std::string address;
 
-typedef enum status { ALIVE, DEAD } status_t;
-
-#define NEVER_USED (-1)
+typedef enum type { 
+    UNKNOWN = 0,
+    INT, 
+    FLOAT,
+    VOID,
+    NO_TYPE
+} type_t;
 
 typedef struct symbol_table_entry {
     // Parser information.
     token_t token;
     bool isConstant = false;
     bool isAssigned = false;
-    // Code generator information.
-    status_t liveness;
-    int lastUse = NEVER_USED;
+    bool isArray = false;
+    bool isLiteral = false;
+    uint64_t arraySize = 0;
+    type_t type = NO_TYPE;
 } st_entry_t;
 
 class SymbolTable {

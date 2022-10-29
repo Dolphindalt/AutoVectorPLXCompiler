@@ -12,6 +12,7 @@
 #include <stack>
 #include <initializer_list>
 #include <ast.h>
+#include <symbol_table.h>
 
 /**
  * Semantic checks to be performed:
@@ -54,6 +55,7 @@ private:
     AST parseTermTail();
     AST parseFactor();
     AST parseNumber();
+    st_entry_t parseType();
 
     void tryMatchTerminal(
         const token_t &actual, 
@@ -74,6 +76,12 @@ private:
         const token_t &actual, 
         const std::initializer_list<token_class_t> expected
     ) const;
+
+    std::shared_ptr<SymbolTable> currentScope();
+    void enterNewScope();
+    void exitOldScope();
+    
+    std::stack<std::shared_ptr<SymbolTable>> scopes;
 
     const token_stream_t tokens;
     unsigned int current_token = 0;

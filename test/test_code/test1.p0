@@ -1,4 +1,4 @@
-var x, squ;
+var int x, int squ;
 
 procedure square;
 begin

@@ -8,7 +8,11 @@
 #include <parser.h>
 
 Parser::Parser(const token_stream_t &tokens) 
-: tokens(tokens) {}
+: tokens(tokens) {
+    std::shared_ptr<SymbolTable> globalScope = std::make_shared<SymbolTable>();
+    this->scopes.push(globalScope);
+    globalScope = nullptr;
+}
 
 Parser::~Parser() {}
 
@@ -71,17 +75,24 @@ ASTHead Parser::parseBlock() {
 void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(this->getNextToken(), CONST_KEYWORD);
 
+    st_entry_t typeInfo = this->parseType();
+
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
     this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
     EASTPtr number = this->parseNumber();
+
     EASTPtr variable = std::make_unique<VariableAST>(
-        true, 
-        identifier.lexeme, 
-        number->type
+        identifier.lexeme, this->currentScope()
     );
+
+    typeInfo.isConstant = true;
+    typeInfo.isAssigned = true;
+    typeInfo.token = identifier;
+
+    this->currentScope()->insert(identifier.lexeme, typeInfo);
 
     EASTPtr binAST 
         = std::make_unique<BinaryExprAST>(
@@ -100,16 +111,23 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
 void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(this->getNextToken(), COMMA);
 
+    st_entry_t typeInfo = this->parseType();
+
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
     this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
     EASTPtr number = this->parseNumber();
     EASTPtr variable = std::make_unique<VariableAST>(
-        true,
         identifier.lexeme,
-        number->type
+        this->currentScope()
     );
+
+    typeInfo.isConstant = true;
+    typeInfo.isAssigned = true;
+    typeInfo.token = identifier;
+
+    this->currentScope()->insert(identifier.lexeme, typeInfo);
 
     EASTPtr binAST 
         = std::make_unique<BinaryExprAST>(
@@ -120,14 +138,23 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
 
 void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(this->getNextToken(), VAR_KEYWORD);
+
+    st_entry_t typeInfo = this->parseType();
+
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
     EASTPtr variable = std::make_unique<VariableAST>(
-        false, 
         identifier.lexeme, 
-        UNKNOWN
+        this->currentScope()
     );
+
+    typeInfo.isConstant = false;
+    typeInfo.isAssigned = false;
+    typeInfo.token = identifier;
+
+    this->currentScope()->insert(identifier.lexeme, typeInfo);
+
     EASTPtr declaration = std::make_unique<UnaryExprAST>(
         ASSIGNMENT, std::move(variable)
     );
@@ -145,14 +172,22 @@ void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
 void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {    
     this->tryMatchTerminal(this->getNextToken(), COMMA);
 
+    st_entry_t typeInfo = this->parseType();
+
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
     EASTPtr variable = std::make_unique<VariableAST>(
-        false, 
         identifier.lexeme, 
-        UNKNOWN
+        this->currentScope()
     );
+
+    typeInfo.isConstant = false;
+    typeInfo.isAssigned = false;
+    typeInfo.token = identifier;
+
+    this->currentScope()->insert(identifier.lexeme, typeInfo);
+
     EASTPtr declaration = std::make_unique<UnaryExprAST>(
         ASSIGNMENT, std::move(variable)
     );
@@ -177,9 +212,21 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
     std::unique_ptr<VariableAST> returnId = nullptr;
 
     peek = this->peekNextToken();
-    if (peek.type == IDENTIFIER) {
-        returnId = std::make_unique<VariableAST>(false, peek.lexeme, UNKNOWN);
-        this->tryMatchTerminal(this->getNextToken(), IDENTIFIER);
+    // First set of type.
+    if (peek.type == INT_NUMBER_LITERAL || peek.type == FLOAT_NUMBER_LITERAL) {
+        st_entry_t typeInfo = this->parseType();
+        typeInfo.isAssigned = false;
+
+        token_t ident = this->getNextToken();
+        this->tryMatchTerminal(ident, IDENTIFIER);
+
+        typeInfo.token = ident;
+
+        this->currentScope()->insert(ident.lexeme, typeInfo);
+
+        returnId = std::make_unique<VariableAST>(
+            ident.lexeme, this->currentScope()
+        );
     }
 
     this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
@@ -203,29 +250,44 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
 std::vector<std::unique_ptr<VariableAST>> Parser::parseArguments() {
     
     std::vector<std::unique_ptr<VariableAST>> arguments;
+
+    st_entry_t typeInfo = this->parseType();
+    // All function parameters are considered to be assigned.
+    typeInfo.isAssigned = true;
+
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
+    typeInfo.token = identifier;
+
     arguments.push_back(
         std::make_unique<VariableAST>(
-            false, 
             identifier.lexeme, 
-            UNKNOWN
+            this->currentScope()
         )
     );
 
+    this->currentScope()->insert(identifier.lexeme, typeInfo);
+
     while (this->peekNextToken().type == COMMA) {
         this->tryMatchTerminal(this->getNextToken(), COMMA);
+
+        typeInfo = this->parseType();
+        typeInfo.isAssigned = true;
+
         identifier = this->getNextToken();
         this->tryMatchTerminal(identifier, IDENTIFIER);
 
+        typeInfo.token = identifier;
+
         arguments.push_back(
-        std::make_unique<VariableAST>(
-                false, 
+            std::make_unique<VariableAST>(
                 identifier.lexeme, 
-                UNKNOWN
+                this->currentScope()
             )
         );
+
+        this->currentScope()->insert(identifier.lexeme, typeInfo);
     }
     return arguments;
 }
@@ -238,9 +300,8 @@ AST Parser::parseStatement() {
             token_t identifier = this->getNextToken();
             this->tryMatchTerminal(identifier, IDENTIFIER);
             EASTPtr lhs = std::make_unique<VariableAST>(
-                false, 
                 identifier.lexeme, 
-                UNKNOWN
+                this->currentScope()
             );
 
             this->tryMatchTerminal(this->getNextToken(), DEFINE_EQUALS);
@@ -290,9 +351,8 @@ AST Parser::parseStatement() {
             this->tryMatchTerminal(identifier, IDENTIFIER);
 
             EASTPtr toReadTo = std::make_unique<VariableAST>(
-                false, 
                 identifier.lexeme, 
-                UNKNOWN
+                this->currentScope()
             );
 
             EASTPtr read = std::make_unique<UnaryExprAST>(
@@ -449,7 +509,10 @@ AST Parser::parseFactor() {
     switch (token.type) {
         case IDENTIFIER:
             this->tryMatchTerminal(this->getNextToken(), IDENTIFIER);
-            return std::make_unique<VariableAST>(false, token.lexeme, UNKNOWN);
+            return std::make_unique<VariableAST>(
+                token.lexeme,
+                this->currentScope()
+            );
         case INT_NUMBER_LITERAL:
         case FLOAT_NUMBER_LITERAL:
             return this->parseNumber();
@@ -485,23 +548,23 @@ AST Parser::parseNumber() {
 
     EASTPtr number;
 
+    st_entry_t typeInfo;
+    typeInfo.isConstant = true;
+    typeInfo.isAssigned = true;
+    typeInfo.isLiteral = true;
+    typeInfo.token = next;
+
     switch (next.type) {
         case INT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, INT_NUMBER_LITERAL);
             uint64_t value = atoi(next.lexeme.c_str());
-            number = std::make_unique<NumberAST>(
-                (void *)&value, 
-                INT
-            );
+            number = std::make_unique<NumberAST>((void *)&value);
             break;
         }
         case FLOAT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, FLOAT_NUMBER_LITERAL);
             double value = atof(next.lexeme.c_str());
-            number = std::make_unique<NumberAST>(
-                (void *)&value,
-                FLOAT
-            );
+            number = std::make_unique<NumberAST>((void *)&value);
             break;
         }
         default:
@@ -512,11 +575,49 @@ AST Parser::parseNumber() {
             });
     }
 
+    this->currentScope()->insert(next.lexeme, typeInfo);
+
     if (is_unary) {
         return std::make_unique<UnaryExprAST>(unary_op, std::move(number));
     }
 
     return number;
+}
+
+st_entry_t Parser::parseType() {
+    st_entry_t st_ent;
+    st_ent.isArray = false;
+    st_ent.isConstant = false;
+    st_ent.isAssigned = false;
+
+    const token_t next = this->getNextToken();
+    switch (next.type) {
+        case INT_TYPE_KEYWORD:
+            this->tryMatchTerminal(next, INT_TYPE_KEYWORD);
+            st_ent.type = INT;
+            break;
+        case FLOAT_TYPE_KEYWORD:
+            this->tryMatchTerminal(next, FLOAT_TYPE_KEYWORD);
+            st_ent.type = FLOAT;
+            break;
+        default:
+            raiseMismatchError(next, { 
+                INT_TYPE_KEYWORD, 
+                FLOAT_TYPE_KEYWORD 
+            });
+    }
+
+    const token_t peek = this->peekNextToken();
+    if (peek.type == LEFT_SQUARE_BRACKET) {
+        this->tryMatchTerminal(this->getNextToken(), LEFT_SQUARE_BRACKET);
+        const token_t int_literal = this->getNextToken();
+        this->tryMatchTerminal(int_literal, INT_NUMBER_LITERAL);
+        this->tryMatchTerminal(this->getNextToken(), RIGHT_SQUARE_BRACKET);
+        st_ent.isArray = true;
+        st_ent.arraySize = atoi(int_literal.lexeme.c_str());
+    }
+
+    return st_ent;
 }
 
 void Parser::tryMatchTerminal(
@@ -582,4 +683,19 @@ void Parser::raiseMismatchError(
     );
 
     exit(EXIT_FAILURE);
+}
+
+std::shared_ptr<SymbolTable> Parser::currentScope() {
+    return this->scopes.top();
+}
+
+void Parser::enterNewScope() {
+    std::shared_ptr<SymbolTable> newScope 
+        = std::make_shared<SymbolTable>(this->scopes.top());
+    this->scopes.push(newScope);
+}
+
+void Parser::exitOldScope() {
+    ASSERT(this->scopes.size() != 1);
+    this->scopes.pop();
 }

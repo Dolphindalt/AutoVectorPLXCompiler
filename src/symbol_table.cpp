@@ -1,49 +1,45 @@
-#ifndef SYMBOL_TABLE_H__
-#define SYMBOL_TABLE_H__
+#include <symbol_table.h>
 
-#include <lexer.h>
-#include <string>
-#include <memory>
-#include <map>
+#include <assertions.h>
 
-typedef std::string address;
+SymbolTable::SymbolTable() {
+    
+}
 
-typedef enum status { ALIVE, DEAD } status_t;
+SymbolTable::SymbolTable(std::shared_ptr<SymbolTable> enclosingScope) 
+: enclosingScope(enclosingScope), level(this->enclosingScope->level + 1) {
+    
+}
 
-#define NEVER_USED (-1)
+SymbolTable::~SymbolTable() {
+    this->enclosingScope = nullptr;
+}
 
-typedef struct symbol_table_entry {
-    // Parser information.
-    token_t token;
-    bool isConstant = false;
-    bool isAssigned = false;
-    // Code generator information.
-    status_t liveness;
-    int lastUse = NEVER_USED;
-} st_entry_t;
+void SymbolTable::insert(
+    const address &name, 
+    const st_entry_t &object
+) {
+    this->symbolTable.insert(std::make_pair(name, object));
+}
 
-class SymbolTable {
-public:
-    SymbolTable();
-    SymbolTable(std::shared_ptr<SymbolTable> enclosingScope);
+bool SymbolTable::lookup(
+    const address &name,
+    unsigned int *out_level,
+    st_entry_t *out_entry
+) const {
+    if (this->symbolTable.count(name) > 0) {
+        *out_entry = this->symbolTable.at(name);
+        *out_level = this->level;
+        return true;
+    }
 
-    virtual ~SymbolTable();
+    if (this->enclosingScope != nullptr) {
+        return this->enclosingScope->lookup(name, out_level, out_entry);
+    }
 
-    void insert(const address &name, const st_entry_t &object);
+    return false;
+}
 
-    bool lookup(
-        const address &name, 
-        unsigned int *out_level, 
-        st_entry_t *out_entry
-    ) const;
-
-    bool isGlobalScope() const;
-
-    unsigned int getLevel() const { return this->level; };
-private:
-    std::map<address, st_entry_t> symbolTable;
-    std::shared_ptr<SymbolTable> enclosingScope = nullptr;
-    unsigned int level = 0;
-};
-
-#endif
+bool SymbolTable::isGlobalScope() const {
+    return this->level == 0;
+}

@@ -1,6 +1,6 @@
 var x;
 
-procedure square(x) squ;
+procedure square(int x) int squ;
 begin
    squ:= x * x
 end;
