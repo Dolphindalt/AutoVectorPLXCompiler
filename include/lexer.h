@@ -24,7 +24,7 @@ typedef enum token_class {
     ERROR = 0,
     IDENTIFIER = 1,
     CONST_KEYWORD = 2,
-    NUMBER_LITERAL = 3,
+    INT_NUMBER_LITERAL = 3,
     COMMA = 4,
     DEFINE_EQUALS = 5,
     EQUALS = 6,
@@ -48,7 +48,10 @@ typedef enum token_class {
     READ_OP = 24,
     PERIOD = 25,
     END_OF_FILE = 26,
-    WHITESPACE = 27
+    WHITESPACE = 27,
+    FLOAT_NUMBER_LITERAL = 28,
+    LEFT_SQUARE_BRACKET = 29,
+    RIGHT_SQUARE_BRACKET = 30
 } token_class_t;
 
 #define LAZY_TYPE_MAP(type) { type, #type }
@@ -57,7 +60,7 @@ static std::map<token_class_t, std::string> type_to_string = {
     LAZY_TYPE_MAP(ERROR),
     LAZY_TYPE_MAP(IDENTIFIER),
     LAZY_TYPE_MAP(CONST_KEYWORD),
-    LAZY_TYPE_MAP(NUMBER_LITERAL),
+    LAZY_TYPE_MAP(INT_NUMBER_LITERAL),
     LAZY_TYPE_MAP(COMMA),
     LAZY_TYPE_MAP(DEFINE_EQUALS),
     LAZY_TYPE_MAP(EQUALS),
@@ -81,7 +84,10 @@ static std::map<token_class_t, std::string> type_to_string = {
     LAZY_TYPE_MAP(READ_OP),
     LAZY_TYPE_MAP(PERIOD),
     LAZY_TYPE_MAP(END_OF_FILE),
-    LAZY_TYPE_MAP(WHITESPACE)
+    LAZY_TYPE_MAP(WHITESPACE),
+    LAZY_TYPE_MAP(FLOAT_NUMBER_LITERAL),
+    LAZY_TYPE_MAP(LEFT_SQUARE_BRACKET),
+    LAZY_TYPE_MAP(RIGHT_SQUARE_BRACKET)
 };
 
 /**

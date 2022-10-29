@@ -102,34 +102,7 @@ TEST_CASE("Smoke Test 1", "[Parser]") {
 
     Parser parser(tokens);
 
-    ParseTree<std::string> parse_tree = parser.parse();
-
-    std::vector<std::string> expected = {
-        "program", ".", "block", "statement", "end", "statement", "statement",
-        "end", "statement", "expression", "term", "factor", "1", "+", "term",
-        "factor", "x", ":=", "x", ";", "statement", "expression", "term",
-        "factor", "squ", "!", ";", "statement", "square", "call", "begin",
-        "do", "condition", "expression", "term", "factor", "10", "<=",
-        "expression", "term", "factor", "x", "while", ";", "statement",
-        "expression", "term", "factor", "1", ":=", "x", "begin", "procedure",
-        ";", "block", "statement", "end", "statement", "expression", "term",
-        "factor", "x", "*", "factor", "x", ":=", "squ", "begin", ";", "square",
-        "procedure", "var_declaration", ";", "var_declaration_list", "squ", ",",
-        "x", "var"
-    };
-    size_t index = 0;
-
-    PTNode<std::string>::dfsTraversal(
-        parse_tree, 
-        [&index, expected](std::string value) {
-            if (index < expected.size()) {
-                REQUIRE(expected[index] == value);
-            }
-            index++;
-        }
-    );
-
-    
+    parser.parse();
 }
 
 /**

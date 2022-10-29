@@ -9,6 +9,7 @@
 #include <argp.h>
 #include <lexer.h>
 #include <parser.h>
+#include <ast.h>
 
 const char *argp_program_version = "CPSC 323 Student Compiler";
 const char *argp_program_bug_address = "dcaron@fullerton.edu";
@@ -64,10 +65,7 @@ int main(int argc, char *argv[]) {
 
     Parser parser(tokens);
 
-    ParseTree<std::string> parse_tree = parser.parse();
-
-    const int OVER_ESTIMATE = 2048;
-    PTNode<std::string>::printTree(parse_tree, OVER_ESTIMATE);
+    AST ast = parser.parse();
 
     return EXIT_SUCCESS;
 }

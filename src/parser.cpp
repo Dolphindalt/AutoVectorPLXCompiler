@@ -12,7 +12,7 @@ Parser::Parser(const token_stream_t &tokens)
 
 Parser::~Parser() {}
 
-ParseTree<std::string> Parser::parse() {
+AST Parser::parse() {
     return this->parseProgram();
 }
 
@@ -33,306 +33,507 @@ token_t Parser::peekNextToken() const {
     return this->tokens[this->current_token];
 }
 
-PTPtr<std::string> Parser::parseProgram() {
-    PTPtr<std::string> programNode = 
-        std::make_shared<PTNode<std::string>>("program");
+ASTHead Parser::parseProgram() {
     
-    programNode->addChild(this->parseBlock());
+    ASTHead programBlock = this->parseBlock();
 
-    this->tryMatchTerminal(this->getNextToken(), PERIOD, programNode);
-    return programNode;
+    this->tryMatchTerminal(this->getNextToken(), PERIOD);
+    return programBlock;
 }
 
-PTPtr<std::string> Parser::parseBlock() {
-    PTPtr<std::string> blockNode = 
-        std::make_shared<PTNode<std::string>>("block");
+ASTHead Parser::parseBlock() {
+    std::shared_ptr<ExprListAST> blockNode = 
+        std::make_shared<ExprListAST>();
 
     token_t token = this->peekNextToken();
 
     if (token.type == CONST_KEYWORD) {
-        blockNode->addChild(this->parseConstDeclarations());
+        this->parseConstDeclarations(blockNode);
         token = this->peekNextToken();    
     }
 
     if (token.type == VAR_KEYWORD) {
-        blockNode->addChild(this->parseVarDeclarations());
+        this->parseVarDeclarations(blockNode);
         token = this->peekNextToken();
     }
 
     if (token.type == PROCEDURE_KEYWORD) {
         // Procedures can be parsed 0 or more times.
         while (this->peekNextToken().type == PROCEDURE_KEYWORD) {
-            blockNode->addChild(this->parseProcedure());
+            this->parseProcedure(blockNode);
         }
     }
 
     blockNode->addChild(this->parseStatement());
-    return blockNode;
+    return std::make_unique<ExprListAST>(*blockNode.get());
 }
 
-PTPtr<std::string> Parser::parseConstDeclarations() {
-    PTPtr<std::string> constDeclNode = 
-        std::make_shared<PTNode<std::string>>("const_declaration");
-
-    this->tryMatchTerminal(this->getNextToken(), CONST_KEYWORD, constDeclNode);
+void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
+    this->tryMatchTerminal(this->getNextToken(), CONST_KEYWORD);
 
     token_t identifier = this->getNextToken();
-    this->tryMatchTerminal(identifier, IDENTIFIER, constDeclNode);
+    this->tryMatchTerminal(identifier, IDENTIFIER);
 
-    this->tryMatchTerminal(this->getNextToken(), EQUALS, constDeclNode);
+    this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
-    token_t number = this->getNextToken();
-    this->tryMatchTerminal(number, NUMBER_LITERAL, constDeclNode);
+    EASTPtr number = this->parseNumber();
+    EASTPtr variable = std::make_unique<VariableAST>(
+        true, 
+        identifier.lexeme, 
+        number->type
+    );
+
+    EASTPtr binAST 
+        = std::make_unique<BinaryExprAST>(
+            ASSIGNMENT, std::move(variable), std::move(number)
+        );
+    parent->addChild(std::move(binAST));
     
     // There can be zero or more constant items separated by a comma.
     while (this->peekNextToken().type == COMMA) {
-        constDeclNode->addChild(this->parseConstDeclarationList());
+        this->parseConstDeclarationList(parent);
     }
 
-    this->tryMatchTerminal(this->getNextToken(), SEMICOLON, constDeclNode);
-
-    return constDeclNode;
+    this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
 }
 
-PTPtr<std::string> Parser::parseConstDeclarationList() {
-    PTPtr<std::string> constDeclListNode = 
-        std::make_shared<PTNode<std::string>>("const_declaration_list");
-
-    this->tryMatchTerminal(this->getNextToken(), COMMA, constDeclListNode);
+void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
+    this->tryMatchTerminal(this->getNextToken(), COMMA);
 
     token_t identifier = this->getNextToken();
-    this->tryMatchTerminal(identifier, IDENTIFIER, constDeclListNode);
-    this->tryMatchTerminal(this->getNextToken(), EQUALS, constDeclListNode);
+    this->tryMatchTerminal(identifier, IDENTIFIER);
+    this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
-    token_t number = this->getNextToken();
-    this->tryMatchTerminal(number, NUMBER_LITERAL, constDeclListNode);
+    EASTPtr number = this->parseNumber();
+    EASTPtr variable = std::make_unique<VariableAST>(
+        true,
+        identifier.lexeme,
+        number->type
+    );
 
-    return constDeclListNode;
+    EASTPtr binAST 
+        = std::make_unique<BinaryExprAST>(
+            ASSIGNMENT, std::move(variable), std::move(number)
+        );
+    parent->addChild(std::move(binAST));
 }
 
-PTPtr<std::string> Parser::parseVarDeclarations() {
-    PTPtr<std::string> varDeclNode = 
-        std::make_shared<PTNode<std::string>>("var_declaration");
-
-    this->tryMatchTerminal(this->getNextToken(), VAR_KEYWORD, varDeclNode);
+void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
+    this->tryMatchTerminal(this->getNextToken(), VAR_KEYWORD);
     token_t identifier = this->getNextToken();
-    this->tryMatchTerminal(identifier, IDENTIFIER, varDeclNode);
+    this->tryMatchTerminal(identifier, IDENTIFIER);
+
+    EASTPtr variable = std::make_unique<VariableAST>(
+        false, 
+        identifier.lexeme, 
+        UNKNOWN
+    );
+    EASTPtr declaration = std::make_unique<UnaryExprAST>(
+        ASSIGNMENT, std::move(variable)
+    );
+    parent->addChild(std::move(declaration));
 
     // There can be zero or more variable names separated by a comma.
     while (this->peekNextToken().type == COMMA) {
-        varDeclNode->addChild(this->parseVarDeclarationList());
+        this->parseVarDeclarationList(parent);
     }
 
-    this->tryMatchTerminal(this->getNextToken(), SEMICOLON, varDeclNode);
+    this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
 
-    return varDeclNode;
 }
 
-PTPtr<std::string> Parser::parseVarDeclarationList() {
-    PTPtr<std::string> varDeclNodeList = 
-        std::make_shared<PTNode<std::string>>("var_declaration_list");
+void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {    
+    this->tryMatchTerminal(this->getNextToken(), COMMA);
+
+    token_t identifier = this->getNextToken();
+    this->tryMatchTerminal(identifier, IDENTIFIER);
+
+    EASTPtr variable = std::make_unique<VariableAST>(
+        false, 
+        identifier.lexeme, 
+        UNKNOWN
+    );
+    EASTPtr declaration = std::make_unique<UnaryExprAST>(
+        ASSIGNMENT, std::move(variable)
+    );
+    parent->addChild(std::move(declaration));
+}
+
+void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {    
+    this->tryMatchTerminal(this->getNextToken(), PROCEDURE_KEYWORD);
+
+    token_t procedure_id = this->getNextToken();
+    this->tryMatchTerminal(procedure_id, IDENTIFIER);
+
+    std::vector<std::unique_ptr<VariableAST>> arguments;
+
+    token_t peek = this->peekNextToken();
+    if (peek.type == LEFT_PAREN) {
+        this->tryMatchTerminal(this->getNextToken(), LEFT_PAREN);
+        arguments = this->parseArguments();
+        this->tryMatchTerminal(this->getNextToken(), RIGHT_PAREN);
+    }
+
+    std::unique_ptr<VariableAST> returnId = nullptr;
+
+    peek = this->peekNextToken();
+    if (peek.type == IDENTIFIER) {
+        returnId = std::make_unique<VariableAST>(false, peek.lexeme, UNKNOWN);
+        this->tryMatchTerminal(this->getNextToken(), IDENTIFIER);
+    }
+
+    this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
+
+    std::unique_ptr<ExprListAST> blockBody = this->parseBlock();
+
+    this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
+
+    std::unique_ptr<Prototype> prototype 
+        = std::make_unique<Prototype>(
+            procedure_id.lexeme, std::move(arguments), std::move(returnId)
+        );
+
+    EASTPtr procedure = std::make_unique<ProcedureAST>(
+        std::move(prototype), std::move(blockBody)
+    );
+
+    parent->addChild(std::move(procedure));
+}
+
+std::vector<std::unique_ptr<VariableAST>> Parser::parseArguments() {
     
-    this->tryMatchTerminal(this->getNextToken(), COMMA, varDeclNodeList);
+    std::vector<std::unique_ptr<VariableAST>> arguments;
+    token_t identifier = this->getNextToken();
+    this->tryMatchTerminal(identifier, IDENTIFIER);
 
-    const token_t identifier = this->getNextToken();
-    this->tryMatchTerminal(identifier, IDENTIFIER, varDeclNodeList);
+    arguments.push_back(
+        std::make_unique<VariableAST>(
+            false, 
+            identifier.lexeme, 
+            UNKNOWN
+        )
+    );
 
-    return varDeclNodeList;
+    while (this->peekNextToken().type == COMMA) {
+        this->tryMatchTerminal(this->getNextToken(), COMMA);
+        identifier = this->getNextToken();
+        this->tryMatchTerminal(identifier, IDENTIFIER);
+
+        arguments.push_back(
+        std::make_unique<VariableAST>(
+                false, 
+                identifier.lexeme, 
+                UNKNOWN
+            )
+        );
+    }
+    return arguments;
 }
 
-PTPtr<std::string> Parser::parseProcedure() {
-    PTPtr<std::string> procedure = 
-        std::make_shared<PTNode<std::string>>("procedure");
-    
-    this->tryMatchTerminal(this->getNextToken(), PROCEDURE_KEYWORD, procedure);
-
-    const token_t procedure_id = this->getNextToken();
-    this->tryMatchTerminal(procedure_id, IDENTIFIER, procedure);
-    this->tryMatchTerminal(this->getNextToken(), SEMICOLON, procedure);
-
-    procedure->addChild(this->parseBlock());
-
-    this->tryMatchTerminal(this->getNextToken(), SEMICOLON, procedure);
-
-    return procedure;
-}
-
-PTPtr<std::string> Parser::parseStatement() {
-    PTPtr<std::string> statementNode = 
-        std::make_shared<PTNode<std::string>>("statement");
+AST Parser::parseStatement() {
 
     const token_t token = this->peekNextToken();
     switch (token.type) {
         case IDENTIFIER: {
-            const token_t identifier = this->getNextToken();
-            this->tryMatchTerminal(identifier, IDENTIFIER, statementNode);
-            this->tryMatchTerminal(this->getNextToken(), DEFINE_EQUALS, statementNode);
-            statementNode->addChild(this->parseExpression());
-            break;
+            token_t identifier = this->getNextToken();
+            this->tryMatchTerminal(identifier, IDENTIFIER);
+            EASTPtr lhs = std::make_unique<VariableAST>(
+                false, 
+                identifier.lexeme, 
+                UNKNOWN
+            );
+
+            this->tryMatchTerminal(this->getNextToken(), DEFINE_EQUALS);
+
+            EASTPtr rhs = this->parseExpression();
+
+            EASTPtr binExpr = std::make_unique<BinaryExprAST>(
+                ASSIGNMENT, 
+                std::move(lhs), 
+                std::move(rhs)
+            );
+
+            return binExpr;
         }
         case CALL_KEYWORD: {
-            this->tryMatchTerminal(this->getNextToken(), CALL_KEYWORD, statementNode);
-            const token_t procedureID = this->getNextToken();
-            this->tryMatchTerminal(procedureID, IDENTIFIER, statementNode);
-            break;
+            this->tryMatchTerminal(this->getNextToken(), CALL_KEYWORD);
+            token_t procedureID = this->getNextToken();
+            this->tryMatchTerminal(procedureID, IDENTIFIER);
+
+            std::vector<EASTPtr> arguments;
+
+            if (this->peekNextToken().type == LEFT_PAREN) {
+                this->tryMatchTerminal(this->getNextToken(), LEFT_PAREN);
+                arguments.push_back(this->parseExpression());
+                this->tryMatchTerminal(this->getNextToken(), RIGHT_PAREN);
+            }
+
+            EASTPtr call = std::make_unique<CallExprAST>(
+                procedureID.lexeme, std::move(arguments)
+            );
+
+            return call;
         }
         case WRITE_OP: {
-            this->tryMatchTerminal(this->getNextToken(), WRITE_OP, statementNode);
-            statementNode->addChild(this->parseExpression());
+            this->tryMatchTerminal(this->getNextToken(), WRITE_OP);
+            EASTPtr toWrite = this->parseExpression();
 
-            break;
+            EASTPtr write = std::make_unique<UnaryExprAST>(
+                WRITE, std::move(toWrite)
+            );
+
+            return write;
         }
         case READ_OP: {
-            this->tryMatchTerminal(this->getNextToken(), READ_OP, statementNode);
-            const token_t identifier = this->getNextToken();
-            this->tryMatchTerminal(identifier, IDENTIFIER, statementNode);
+            this->tryMatchTerminal(this->getNextToken(), READ_OP);
+            token_t identifier = this->getNextToken();
+            this->tryMatchTerminal(identifier, IDENTIFIER);
 
-            break;
+            EASTPtr toReadTo = std::make_unique<VariableAST>(
+                false, 
+                identifier.lexeme, 
+                UNKNOWN
+            );
+
+            EASTPtr read = std::make_unique<UnaryExprAST>(
+                READ, std::move(toReadTo)
+            );
+
+            return read;
         }
         case BEGIN_KEYWORD: {
-            this->tryMatchTerminal(this->getNextToken(), BEGIN_KEYWORD, statementNode);
+            this->tryMatchTerminal(this->getNextToken(), BEGIN_KEYWORD);
 
-            statementNode->addChild(this->parseStatement());
+            std::unique_ptr<ExprListAST> exprList 
+                = std::make_unique<ExprListAST>();
+
+            EASTPtr statement = this->parseStatement();
+            exprList->addChild(std::move(statement));
+
             while (this->peekNextToken().type == SEMICOLON) {
-                this->tryMatchTerminal(this->getNextToken(), SEMICOLON, statementNode);
-                statementNode->addChild(this->parseStatement());
+                this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
+                statement = this->parseStatement();
+                exprList->addChild(std::move(statement));
             }
-            this->tryMatchTerminal(this->getNextToken(), END_KEYWORD, statementNode);
+            this->tryMatchTerminal(this->getNextToken(), END_KEYWORD);
 
-            break;
+            return exprList;
         }
         case IF_KEYWORD: {
-            this->tryMatchTerminal(this->getNextToken(), IF_KEYWORD, statementNode);
-            statementNode->addChild(this->parseCondition());
+            this->tryMatchTerminal(this->getNextToken(), IF_KEYWORD);
+            EASTPtr condition = this->parseCondition();
 
-            this->tryMatchTerminal(this->getNextToken(), THEN_KEYWORD, statementNode);
-            statementNode->addChild(this->parseStatement());
+            this->tryMatchTerminal(this->getNextToken(), THEN_KEYWORD);
+            EASTPtr body = this->parseStatement();
 
-            break;
+            return std::make_unique<IfStatementAST>(
+                std::move(condition), std::move(body)
+            );
         }
         case WHILE_KEYWORD: {
-            this->tryMatchTerminal(this->getNextToken(), WHILE_KEYWORD, statementNode);
-            statementNode->addChild(this->parseCondition());
+            this->tryMatchTerminal(this->getNextToken(), WHILE_KEYWORD);
+            EASTPtr condition = this->parseCondition();
 
-            this->tryMatchTerminal(this->getNextToken(), DO_KEYWORD, statementNode);
-            statementNode->addChild(this->parseStatement());
+            this->tryMatchTerminal(this->getNextToken(), DO_KEYWORD);
+            EASTPtr body = this->parseStatement();
 
-            break;
+            return std::make_unique<WhileStatementAST>(
+                std::move(condition), std::move(body)
+            );
         }
         default:
-            // Statements can be nothing (epsilon).
-            statementNode->addChild("\x03\xB5");
             break;
     }
 
-    return statementNode;
+    return nullptr;
 }
 
-PTPtr<std::string> Parser::parseCondition() {
-    PTPtr<std::string> conditionNode = 
-        std::make_shared<PTNode<std::string>>("condition");
-
+AST Parser::parseCondition() {
     const token_t token = this->peekNextToken();
     switch (token.type) {
         case ODD_OP: {
-            this->tryMatchTerminal(this->getNextToken(), ODD_OP, conditionNode);
-            conditionNode->addChild(this->parseExpression());
+            this->tryMatchTerminal(this->getNextToken(), ODD_OP);
+            EASTPtr operand = this->parseExpression();
+            return std::make_unique<UnaryExprAST>(ODD, std::move(operand));
         }
         default: {
-            conditionNode->addChild(this->parseExpression());
+            EASTPtr lhs = this->parseExpression();
             const token_t cmpOp = this->getNextToken();
-            this->tryMatchTerminal(cmpOp, {COMPARE_OP, EQUALS}, conditionNode);
-            conditionNode->addChild(this->parseExpression());
+            this->tryMatchTerminal(cmpOp, {COMPARE_OP, EQUALS});
+            operation_t op = cmpOpMap.at(cmpOp.lexeme);
+            EASTPtr rhs = this->parseExpression();
+            return std::make_unique<BinaryExprAST>(
+                op, std::move(lhs), std::move(rhs)
+            );
         }
     }
 
-    return conditionNode;
+    return nullptr;
 }
 
-PTPtr<std::string> Parser::parseExpression() {
-    PTPtr<std::string> expressionNode = 
-        std::make_shared<PTNode<std::string>>("expression");
-
+AST Parser::parseExpression() {
     // Optional plus and minus.
+    bool is_unary = false;
+    operation_t unary_op;
     const token_t unaryOp = this->peekNextToken();
     if (unaryOp.type == ADD_OP) {
-        this->tryMatchTerminal(this->getNextToken(), ADD_OP, expressionNode);
+        this->tryMatchTerminal(this->getNextToken(), ADD_OP);
     }
 
-    expressionNode->addChild(this->parseTerm());
+    EASTPtr lhs = this->parseTerm();
 
-    // Read zero or more operator and term pairs.
-    while (this->peekNextToken().type == ADD_OP) {
-        const token_t op = this->getNextToken(); 
-        this->tryMatchTerminal(op, ADD_OP, expressionNode);
-        expressionNode->addChild(this->parseTerm());
+    if (is_unary) {
+        lhs = std::make_unique<UnaryExprAST>(unary_op, std::move(lhs));
     }
 
-    return expressionNode;
+    const token_t next = this->peekNextToken();
+    if (next.type == ADD_OP) {
+        operation_t op = cmpOpMap.at(next.lexeme);
+        EASTPtr rhs = this->parseExpressionTail();
+        return std::make_unique<BinaryExprAST>(
+            op, std::move(lhs), std::move(rhs)
+        );
+    }
+
+    return lhs;
 }
 
-PTPtr<std::string> Parser::parseTerm() {
-    PTPtr<std::string> termNode = std::make_shared<PTNode<std::string>>("term");
+AST Parser::parseExpressionTail() {
+    this->tryMatchTerminal(this->getNextToken(), ADD_OP);
+    EASTPtr lhs = this->parseTerm();
 
-    termNode->addChild(this->parseFactor());
-
-    while (this->peekNextToken().type == MUL_OP) {
-        const token_t op = this->getNextToken();
-        this->tryMatchTerminal(op, MUL_OP, termNode);
-        termNode->addChild(this->parseFactor());
+    const token_t next = this->peekNextToken();
+    if (next.type == ADD_OP) {
+        operation_t op = cmpOpMap.at(next.lexeme);
+        EASTPtr rhs = this->parseExpressionTail();
+        return std::make_unique<BinaryExprAST>(
+            op, std::move(lhs), std::move(rhs)
+        );
     }
 
-    return termNode;
+    return lhs;
 }
 
-PTPtr<std::string> Parser::parseFactor() {
-    PTPtr<std::string> factorNode = 
-        std::make_shared<PTNode<std::string>>("factor");
+AST Parser::parseTerm() {
+    EASTPtr lhs = this->parseFactor();
 
-    const token_t token = this->peekNextToken();
+    const token_t next = this->peekNextToken();
+    while (next.type == MUL_OP) {
+        operation_t op = cmpOpMap.at(next.lexeme);        
+        EASTPtr rhs = this->parseTermTail();
+        return std::make_unique<BinaryExprAST>(
+            op, std::move(lhs), std::move(rhs)
+        );
+    }
+
+    return lhs;
+}
+
+AST Parser::parseTermTail() {
+    this->tryMatchTerminal(this->getNextToken(), MUL_OP);
+    EASTPtr lhs = this->parseFactor();
+    const token_t next = this->peekNextToken();
+    if (next.type == MUL_OP) {
+        operation_t op = cmpOpMap.at(next.lexeme);
+        EASTPtr rhs = this->parseTermTail();
+        return std::make_unique<BinaryExprAST>(
+            op, std::move(lhs), std::move(rhs)
+        );
+    }
+
+    return lhs;
+}
+
+AST Parser::parseFactor() {
+    token_t token = this->peekNextToken();
     switch (token.type) {
         case IDENTIFIER:
-            this->tryMatchTerminal(this->getNextToken(), IDENTIFIER, factorNode);
-            break;
-        case NUMBER_LITERAL:
-            this->tryMatchTerminal(this->getNextToken(), NUMBER_LITERAL, factorNode);
-            break;
+            this->tryMatchTerminal(this->getNextToken(), IDENTIFIER);
+            return std::make_unique<VariableAST>(false, token.lexeme, UNKNOWN);
+        case INT_NUMBER_LITERAL:
+        case FLOAT_NUMBER_LITERAL:
+            return this->parseNumber();
         case LEFT_PAREN: {
-            this->tryMatchTerminal(this->getNextToken(), LEFT_PAREN, factorNode);
-            factorNode->addChild(this->parseExpression());
-            this->tryMatchTerminal(this->getNextToken(), RIGHT_PAREN, factorNode);
-            break;
+            this->tryMatchTerminal(this->getNextToken(), LEFT_PAREN);
+            EASTPtr expr = this->parseExpression();
+            this->tryMatchTerminal(this->getNextToken(), RIGHT_PAREN);
+            return expr;
         }
         default:
             raiseMismatchError(token, {
                 IDENTIFIER,
-                NUMBER_LITERAL,
+                INT_NUMBER_LITERAL,
+                FLOAT_NUMBER_LITERAL,
                 LEFT_PAREN
             });
     }
 
-    return factorNode;
+    return nullptr;
+}
+
+AST Parser::parseNumber() {
+    token_t next = this->getNextToken();
+
+    bool is_unary = false;
+    operation_t unary_op;
+
+    if (next.type == ADD_OP) {
+        this->tryMatchTerminal(next, ADD_OP);
+        unary_op = cmpOpMap.at(next.lexeme);
+        next = this->getNextToken();
+    }
+
+    EASTPtr number;
+
+    switch (next.type) {
+        case INT_NUMBER_LITERAL: {
+            this->tryMatchTerminal(next, INT_NUMBER_LITERAL);
+            uint64_t value = atoi(next.lexeme.c_str());
+            number = std::make_unique<NumberAST>(
+                (void *)&value, 
+                INT
+            );
+            break;
+        }
+        case FLOAT_NUMBER_LITERAL: {
+            this->tryMatchTerminal(next, FLOAT_NUMBER_LITERAL);
+            double value = atof(next.lexeme.c_str());
+            number = std::make_unique<NumberAST>(
+                (void *)&value,
+                FLOAT
+            );
+            break;
+        }
+        default:
+            raiseMismatchError(next, {
+                ADD_OP,
+                INT_NUMBER_LITERAL,
+                FLOAT_NUMBER_LITERAL
+            });
+    }
+
+    if (is_unary) {
+        return std::make_unique<UnaryExprAST>(unary_op, std::move(number));
+    }
+
+    return number;
 }
 
 void Parser::tryMatchTerminal(
     const token_t &actual,
-    const token_class_t expected,
-    PTPtr<std::string> node
+    const token_class_t expected
 ) const {
     if (actual.type != expected) {
         raiseMismatchError(actual, expected);
     }
-    node->addChild(actual.lexeme);
 }
 
 void Parser::tryMatchTerminal(
     const token_t &actual, 
-    const std::initializer_list<token_class_t> expected,
-    PTPtr<std::string> node
+    const std::initializer_list<token_class_t> expected
 ) const {
     for (const token_class_t type : expected) {
         if (type == actual.type) {
-            node->addChild(actual.lexeme);
             return;
         }
     }

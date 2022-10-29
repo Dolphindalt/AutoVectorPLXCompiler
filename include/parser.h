@@ -11,41 +11,58 @@
 #include <lexer.h>
 #include <stack>
 #include <initializer_list>
-#include <parse_tree.h>
+#include <ast.h>
 
+/**
+ * Semantic checks to be performed:
+ * - Duplicate procedures
+ * - Duplicate variables
+ * - Undefined procedures
+ * - Undefined variables
+ * - Number of arguments mismatch
+ * - Argument type error
+ * - Return type error
+ * - Procedure call assignment type error
+ * - If statement condition type error
+ * - While loop condition type error
+ * - Assignment type mismatch
+ * - Expression type error
+ */
 class Parser {
 public:
     Parser(const token_stream_t &tokens);
     virtual ~Parser();
 
-    ParseTree<std::string> parse();
+    AST parse();
 private:
     token_t getNextToken();
     token_t peekNextToken() const;
 
-    PTPtr<std::string> parseProgram();
-    PTPtr<std::string> parseBlock();
-    PTPtr<std::string> parseConstDeclarations();
-    PTPtr<std::string> parseConstDeclarationList();
-    PTPtr<std::string> parseVarDeclarations();
-    PTPtr<std::string> parseVarDeclarationList();
-    PTPtr<std::string> parseProcedure();
-    PTPtr<std::string> parseStatement();
-    PTPtr<std::string> parseCondition();
-    PTPtr<std::string> parseExpression();
-    PTPtr<std::string> parseTerm();
-    PTPtr<std::string> parseFactor();
+    ASTHead parseProgram();
+    ASTHead parseBlock();
+    void parseConstDeclarations(std::shared_ptr<ExprListAST> parent);
+    void parseConstDeclarationList(std::shared_ptr<ExprListAST> parent);
+    void parseVarDeclarations(std::shared_ptr<ExprListAST> parent);
+    void parseVarDeclarationList(std::shared_ptr<ExprListAST> parent);
+    void parseProcedure(std::shared_ptr<ExprListAST> parent);
+    std::vector<std::unique_ptr<VariableAST>> parseArguments();
+    AST parseStatement();
+    AST parseCondition();
+    AST parseExpression();
+    AST parseExpressionTail();
+    AST parseTerm();
+    AST parseTermTail();
+    AST parseFactor();
+    AST parseNumber();
 
     void tryMatchTerminal(
         const token_t &actual, 
-        const token_class_t expected,
-        PTPtr<std::string> node
+        const token_class_t expected
     ) const;
 
     void tryMatchTerminal(
         const token_t &actual, 
-        const std::initializer_list<token_class_t> expected,
-        PTPtr<std::string> node
+        const std::initializer_list<token_class_t> expected
     ) const;
 
     void raiseMismatchError(

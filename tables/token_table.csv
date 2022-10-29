@@ -10,8 +10,9 @@
 11,6,equals
 12,20,mul op
 13,19,add op
-14,3,number
+14,3,int
 15,27,whitespace
 18,9,odd op
 19,7,(
 20,8,)
+23,28,float
