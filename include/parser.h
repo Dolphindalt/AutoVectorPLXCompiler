@@ -11,7 +11,7 @@
 #include <lexer.h>
 #include <stack>
 #include <initializer_list>
-#include <ast.h>
+#include <past.h>
 #include <symbol_table.h>
 
 /**
@@ -46,7 +46,7 @@ private:
     void parseVarDeclarations(std::shared_ptr<ExprListAST> parent);
     void parseVarDeclarationList(std::shared_ptr<ExprListAST> parent);
     void parseProcedure(std::shared_ptr<ExprListAST> parent);
-    std::vector<std::unique_ptr<VariableAST>> parseArguments();
+    std::vector<std::shared_ptr<VariableAST>> parseArguments();
     AST parseStatement();
     AST parseCondition();
     AST parseExpression();

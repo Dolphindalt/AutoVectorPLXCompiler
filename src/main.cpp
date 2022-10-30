@@ -9,7 +9,7 @@
 #include <argp.h>
 #include <lexer.h>
 #include <parser.h>
-#include <ast.h>
+#include <past.h>
 
 const char *argp_program_version = "CPSC 323 Student Compiler";
 const char *argp_program_bug_address = "dcaron@fullerton.edu";
@@ -66,6 +66,10 @@ int main(int argc, char *argv[]) {
     Parser parser(tokens);
 
     AST ast = parser.parse();
+
+    ExprAST::treeTraversal(ast, [](EASTPtr parent) {
+        parent->typeChecker();
+    });
 
     return EXIT_SUCCESS;
 }
