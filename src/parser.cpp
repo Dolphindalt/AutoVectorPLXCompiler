@@ -47,7 +47,7 @@ ASTHead Parser::parseProgram() {
 
 ASTHead Parser::parseBlock() {
     std::shared_ptr<ExprListAST> blockNode = 
-        std::make_shared<ExprListAST>();
+        std::make_shared<ExprListAST>(this->currentScope());
 
     token_t token = this->peekNextToken();
 
@@ -69,7 +69,7 @@ ASTHead Parser::parseBlock() {
     }
 
     blockNode->addChild(this->parseStatement());
-    return std::make_unique<ExprListAST>(*blockNode.get());
+    return std::make_unique<ExprListAST>(*blockNode.get(), this->currentScope());
 }
 
 void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
@@ -96,7 +96,10 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
 
     EASTPtr binAST 
         = std::make_unique<BinaryExprAST>(
-            ASSIGNMENT, std::move(variable), std::move(number)
+            ASSIGNMENT, 
+            std::move(variable), 
+            std::move(number),
+            this->currentScope()
         );
     parent->addChild(std::move(binAST));
     
@@ -131,7 +134,9 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
 
     EASTPtr binAST 
         = std::make_unique<BinaryExprAST>(
-            ASSIGNMENT, std::move(variable), std::move(number)
+            ASSIGNMENT, std::move(variable), 
+            std::move(number),
+            this->currentScope()
         );
     parent->addChild(std::move(binAST));
 }
@@ -156,7 +161,7 @@ void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->currentScope()->insert(identifier.lexeme, typeInfo);
 
     EASTPtr declaration = std::make_unique<UnaryExprAST>(
-        ASSIGNMENT, std::move(variable)
+        ASSIGNMENT, std::move(variable), this->currentScope()
     );
     parent->addChild(std::move(declaration));
 
@@ -189,7 +194,7 @@ void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {
     this->currentScope()->insert(identifier.lexeme, typeInfo);
 
     EASTPtr declaration = std::make_unique<UnaryExprAST>(
-        ASSIGNMENT, std::move(variable)
+        ASSIGNMENT, std::move(variable), this->currentScope()
     );
     parent->addChild(std::move(declaration));
 }
@@ -237,11 +242,13 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
 
     std::unique_ptr<Prototype> prototype 
         = std::make_unique<Prototype>(
-            procedure_id.lexeme, std::move(arguments), std::move(returnId)
+            procedure_id.lexeme, 
+            std::move(arguments), 
+            std::move(returnId)
         );
 
     EASTPtr procedure = std::make_unique<ProcedureAST>(
-        std::move(prototype), std::move(blockBody)
+        std::move(prototype), std::move(blockBody), this->currentScope()
     );
 
     parent->addChild(std::move(procedure));
@@ -311,7 +318,8 @@ AST Parser::parseStatement() {
             EASTPtr binExpr = std::make_unique<BinaryExprAST>(
                 ASSIGNMENT, 
                 std::move(lhs), 
-                std::move(rhs)
+                std::move(rhs),
+                this->currentScope()
             );
 
             return binExpr;
@@ -330,7 +338,7 @@ AST Parser::parseStatement() {
             }
 
             EASTPtr call = std::make_unique<CallExprAST>(
-                procedureID.lexeme, std::move(arguments)
+                procedureID.lexeme, std::move(arguments), this->currentScope()
             );
 
             return call;
@@ -340,7 +348,7 @@ AST Parser::parseStatement() {
             EASTPtr toWrite = this->parseExpression();
 
             EASTPtr write = std::make_unique<UnaryExprAST>(
-                WRITE, std::move(toWrite)
+                WRITE, std::move(toWrite), this->currentScope()
             );
 
             return write;
@@ -356,7 +364,7 @@ AST Parser::parseStatement() {
             );
 
             EASTPtr read = std::make_unique<UnaryExprAST>(
-                READ, std::move(toReadTo)
+                READ, std::move(toReadTo), this->currentScope()
             );
 
             return read;
@@ -365,7 +373,7 @@ AST Parser::parseStatement() {
             this->tryMatchTerminal(this->getNextToken(), BEGIN_KEYWORD);
 
             std::unique_ptr<ExprListAST> exprList 
-                = std::make_unique<ExprListAST>();
+                = std::make_unique<ExprListAST>(this->currentScope());
 
             EASTPtr statement = this->parseStatement();
             exprList->addChild(std::move(statement));
@@ -387,7 +395,7 @@ AST Parser::parseStatement() {
             EASTPtr body = this->parseStatement();
 
             return std::make_unique<IfStatementAST>(
-                std::move(condition), std::move(body)
+                std::move(condition), std::move(body), this->currentScope()
             );
         }
         case WHILE_KEYWORD: {
@@ -398,7 +406,7 @@ AST Parser::parseStatement() {
             EASTPtr body = this->parseStatement();
 
             return std::make_unique<WhileStatementAST>(
-                std::move(condition), std::move(body)
+                std::move(condition), std::move(body), this->currentScope()
             );
         }
         default:
@@ -414,7 +422,9 @@ AST Parser::parseCondition() {
         case ODD_OP: {
             this->tryMatchTerminal(this->getNextToken(), ODD_OP);
             EASTPtr operand = this->parseExpression();
-            return std::make_unique<UnaryExprAST>(ODD, std::move(operand));
+            return std::make_unique<UnaryExprAST>(
+                ODD, std::move(operand), this->currentScope()
+            );
         }
         default: {
             EASTPtr lhs = this->parseExpression();
@@ -423,7 +433,7 @@ AST Parser::parseCondition() {
             operation_t op = cmpOpMap.at(cmpOp.lexeme);
             EASTPtr rhs = this->parseExpression();
             return std::make_unique<BinaryExprAST>(
-                op, std::move(lhs), std::move(rhs)
+                op, std::move(lhs), std::move(rhs), this->currentScope()
             );
         }
     }
@@ -443,7 +453,9 @@ AST Parser::parseExpression() {
     EASTPtr lhs = this->parseTerm();
 
     if (is_unary) {
-        lhs = std::make_unique<UnaryExprAST>(unary_op, std::move(lhs));
+        lhs = std::make_unique<UnaryExprAST>(
+            unary_op, std::move(lhs), this->currentScope()
+        );
     }
 
     const token_t next = this->peekNextToken();
@@ -451,7 +463,7 @@ AST Parser::parseExpression() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseExpressionTail();
         return std::make_unique<BinaryExprAST>(
-            op, std::move(lhs), std::move(rhs)
+            op, std::move(lhs), std::move(rhs), this->currentScope()
         );
     }
 
@@ -467,7 +479,7 @@ AST Parser::parseExpressionTail() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseExpressionTail();
         return std::make_unique<BinaryExprAST>(
-            op, std::move(lhs), std::move(rhs)
+            op, std::move(lhs), std::move(rhs), this->currentScope()
         );
     }
 
@@ -482,7 +494,7 @@ AST Parser::parseTerm() {
         operation_t op = cmpOpMap.at(next.lexeme);        
         EASTPtr rhs = this->parseTermTail();
         return std::make_unique<BinaryExprAST>(
-            op, std::move(lhs), std::move(rhs)
+            op, std::move(lhs), std::move(rhs), this->currentScope()
         );
     }
 
@@ -497,7 +509,7 @@ AST Parser::parseTermTail() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseTermTail();
         return std::make_unique<BinaryExprAST>(
-            op, std::move(lhs), std::move(rhs)
+            op, std::move(lhs), std::move(rhs), this->currentScope()
         );
     }
 
@@ -507,12 +519,31 @@ AST Parser::parseTermTail() {
 AST Parser::parseFactor() {
     token_t token = this->peekNextToken();
     switch (token.type) {
-        case IDENTIFIER:
+        case IDENTIFIER: {
             this->tryMatchTerminal(this->getNextToken(), IDENTIFIER);
-            return std::make_unique<VariableAST>(
+
+            auto variable = std::make_unique<VariableAST>(
                 token.lexeme,
                 this->currentScope()
             );
+
+            if (this->peekNextToken().type == LEFT_SQUARE_BRACKET) {
+                this->tryMatchTerminal(
+                    this->getNextToken(), LEFT_SQUARE_BRACKET
+                );
+                EASTPtr expression = this->parseExpression();
+                this->tryMatchTerminal(
+                    this->getNextToken(), RIGHT_SQUARE_BRACKET
+                );
+                return std::make_unique<ArrayIndexAST>(
+                    std::move(variable), 
+                    std::move(expression), 
+                    this->currentScope()
+                );
+            }
+
+            return variable;
+        }
         case INT_NUMBER_LITERAL:
         case FLOAT_NUMBER_LITERAL:
             return this->parseNumber();
@@ -558,13 +589,19 @@ AST Parser::parseNumber() {
         case INT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, INT_NUMBER_LITERAL);
             uint64_t value = atoi(next.lexeme.c_str());
-            number = std::make_unique<NumberAST>((void *)&value);
+            number = std::make_unique<NumberAST>(
+                (void *)&value,
+                this->currentScope()
+            );
             break;
         }
         case FLOAT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, FLOAT_NUMBER_LITERAL);
             double value = atof(next.lexeme.c_str());
-            number = std::make_unique<NumberAST>((void *)&value);
+            number = std::make_unique<NumberAST>(
+                (void *)&value, 
+                this->currentScope()
+            );
             break;
         }
         default:
@@ -578,7 +615,11 @@ AST Parser::parseNumber() {
     this->currentScope()->insert(next.lexeme, typeInfo);
 
     if (is_unary) {
-        return std::make_unique<UnaryExprAST>(unary_op, std::move(number));
+        return std::make_unique<UnaryExprAST>(
+            unary_op, 
+            std::move(number), 
+            this->currentScope()
+        );
     }
 
     return number;

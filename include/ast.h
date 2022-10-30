@@ -50,6 +50,9 @@ static std::map<std::string, operation_t> cmpOpMap = {
 
 class ExprAST {
 public:
+    std::shared_ptr<SymbolTable> symTable;
+    ExprAST(std::shared_ptr<SymbolTable> symTable)
+    : symTable(symTable) {}
     virtual ~ExprAST() {};
 };
 
@@ -57,13 +60,17 @@ class ExprListAST : public ExprAST {
 public:
     std::vector<EASTPtr> expressions;
 
-    ExprListAST() : ExprAST(), expressions(std::vector<EASTPtr>()) {}
+    ExprListAST(std::shared_ptr<SymbolTable> symTable) 
+    : ExprAST(symTable), expressions(std::vector<EASTPtr>()) {}
 
-    ExprListAST(std::vector<EASTPtr> &expressions)
-    : ExprAST(), expressions(std::move(expressions)) {}
+    ExprListAST(
+        std::vector<EASTPtr> &expressions, 
+        std::shared_ptr<SymbolTable> symTable
+    )
+    : ExprAST(symTable), expressions(std::move(expressions)) {}
 
-    ExprListAST(ExprListAST &copy) 
-    : ExprAST(), expressions(std::move(copy.expressions)) {}
+    ExprListAST(ExprListAST &copy, std::shared_ptr<SymbolTable> symTable) 
+    : ExprAST(symTable), expressions(std::move(copy.expressions)) {}
 
     void addChild(EASTPtr node) { 
         this->expressions.push_back(std::move(node)); 
@@ -74,8 +81,8 @@ class NumberAST : public ExprAST {
 public:
     uint8_t value[NUMBER_SIZE_BYTES];
 
-    NumberAST(void *value) 
-    : ExprAST() {
+    NumberAST(void *value, std::shared_ptr<SymbolTable> symTable) 
+    : ExprAST(symTable) {
         memcpy(this->value, value, NUMBER_SIZE_BYTES);
     }
 };
@@ -83,10 +90,9 @@ public:
 class VariableAST : public ExprAST {
 public:
     std::string name;
-    std::shared_ptr<SymbolTable> symTable;
 
     VariableAST(std::string &name, std::shared_ptr<SymbolTable> symTable)
-    : name(name), symTable(symTable) {}
+    : ExprAST(symTable), name(name) {}
 
     ~VariableAST() {
         this->symTable = nullptr;
@@ -99,9 +105,13 @@ public:
     EASTPtr lhs, rhs;
 
     BinaryExprAST(
-        operation_t operation, EASTPtr lhs, EASTPtr rhs) 
-        : ExprAST(), operation(operation), lhs(std::move(lhs)), 
-            rhs(std::move(rhs)) {}
+        operation_t operation, 
+        EASTPtr lhs, 
+        EASTPtr rhs, 
+        std::shared_ptr<SymbolTable> symTable
+    ) 
+    : ExprAST(symTable), operation(operation), lhs(std::move(lhs)), 
+        rhs(std::move(rhs)) {}
 };
 
 class UnaryExprAST : public ExprAST {
@@ -109,8 +119,12 @@ public:
     operation_t operation;
     EASTPtr operand;
 
-    UnaryExprAST(operation_t operation, EASTPtr operand)
-    : ExprAST(), operation(operation), operand(std::move(operand)) {}
+    UnaryExprAST(
+        operation_t operation, 
+        EASTPtr operand, 
+        std::shared_ptr<SymbolTable> symTable
+    )
+    : ExprAST(symTable), operation(operation), operand(std::move(operand)) {}
 };
 
 class CallExprAST : public ExprAST {
@@ -118,8 +132,12 @@ public:
     std::string callee;
     std::vector<EASTPtr> arguments;
 
-    CallExprAST(std::string &callee, std::vector<EASTPtr> arguments)
-    : ExprAST(), callee(callee), arguments(std::move(arguments)) {}
+    CallExprAST(
+        std::string &callee, 
+        std::vector<EASTPtr> arguments,
+        std::shared_ptr<SymbolTable> symTable
+    )
+    : ExprAST(symTable), callee(callee), arguments(std::move(arguments)) {}
 };
 
 class Prototype {
@@ -143,8 +161,9 @@ public:
 
     ProcedureAST(
         std::unique_ptr<Prototype> proto, 
-        std::unique_ptr<ExprListAST> body
-    ) : ExprAST(), proto(std::move(proto)), body(std::move(body)) {}
+        std::unique_ptr<ExprListAST> body,
+        std::shared_ptr<SymbolTable> symTable
+    ) : ExprAST(symTable), proto(std::move(proto)), body(std::move(body)) {}
 };
 
 class IfStatementAST : public ExprAST {
@@ -152,8 +171,13 @@ public:
     EASTPtr condition;
     EASTPtr body;
 
-    IfStatementAST(EASTPtr condition, EASTPtr body)
-    : ExprAST(), condition(std::move(condition)), body(std::move(body)) {}
+    IfStatementAST(
+        EASTPtr condition, 
+        EASTPtr body, 
+        std::shared_ptr<SymbolTable> symTable
+    )
+    : ExprAST(symTable), condition(std::move(condition)), 
+        body(std::move(body)) {}
 };
 
 class WhileStatementAST : public ExprAST {
@@ -161,8 +185,25 @@ public:
     EASTPtr condition;
     EASTPtr body;
 
-    WhileStatementAST(EASTPtr condition, EASTPtr body)
-    : ExprAST(), condition(std::move(condition)), body(std::move(body)) {}
+    WhileStatementAST(
+        EASTPtr condition, 
+        EASTPtr body, 
+        std::shared_ptr<SymbolTable> symTable
+    )
+    : ExprAST(symTable), condition(std::move(condition)), 
+        body(std::move(body)) {}
+};
+
+class ArrayIndexAST : public ExprAST {
+public:
+    std::unique_ptr<VariableAST> array;
+    EASTPtr index;
+
+    ArrayIndexAST(
+        std::unique_ptr<VariableAST> array, 
+        EASTPtr index,
+        std::shared_ptr<SymbolTable> symTable
+    ) : ExprAST(symTable), array(std::move(array)), index(std::move(index)) {}
 };
 
 #endif
