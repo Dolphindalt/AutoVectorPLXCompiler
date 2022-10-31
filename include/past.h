@@ -51,9 +51,15 @@ static std::map<std::string, operation_t> cmpOpMap = {
 
 class ExprAST {
 public:
-    std::shared_ptr<SymbolTable> symTable;
-    ExprAST(std::shared_ptr<SymbolTable> symTable)
-    : symTable(symTable) {}
+    type_t type;
+    bool is_array;
+
+    ExprAST() : type(UNKNOWN), is_array(false) {};
+
+    ExprAST(type_t type) : type(type), is_array(false) {};
+
+    ExprAST(type_t type, bool is_array) : type(type), is_array(is_array) {};
+
     virtual ~ExprAST() {};
 
     virtual void typeChecker() = 0;
@@ -70,17 +76,15 @@ class ExprListAST : public ExprAST {
 public:
     std::vector<EASTPtr> expressions;
 
-    ExprListAST(std::shared_ptr<SymbolTable> symTable) 
-    : ExprAST(symTable), expressions(std::vector<EASTPtr>()) {}
+    ExprListAST() 
+    : ExprAST(), expressions(std::vector<EASTPtr>()) {}
 
     ExprListAST(
-        std::vector<EASTPtr> &expressions, 
-        std::shared_ptr<SymbolTable> symTable
-    )
-    : ExprAST(symTable), expressions(expressions) {}
+        std::vector<EASTPtr> &expressions)
+    : ExprAST(), expressions(expressions) {}
 
-    ExprListAST(ExprListAST &copy, std::shared_ptr<SymbolTable> symTable) 
-    : ExprAST(symTable), expressions(copy.expressions) {}
+    ExprListAST(ExprListAST &copy) 
+    : ExprAST(), expressions(copy.expressions) {}
 
     void addChild(EASTPtr node) { 
         this->expressions.push_back(node); 
@@ -93,15 +97,17 @@ public:
 
 class NumberAST : public ExprAST {
 public:
+    std::shared_ptr<SymbolTable> symTable;
     std::string name;
     uint8_t value[NUMBER_SIZE_BYTES];
 
     NumberAST(
         std::string &name, 
         void *value, 
-        std::shared_ptr<SymbolTable> symTable
+        std::shared_ptr<SymbolTable> symTable,
+        type_t type
     ) 
-    : ExprAST(symTable), name(name) {
+    : ExprAST(type), symTable(symTable), name(name) {
         memcpy(this->value, value, NUMBER_SIZE_BYTES);
     }
 
@@ -112,10 +118,16 @@ public:
 
 class VariableAST : public ExprAST {
 public:
+    std::shared_ptr<SymbolTable> symTable;
     std::string name;
 
-    VariableAST(std::string &name, std::shared_ptr<SymbolTable> symTable)
-    : ExprAST(symTable), name(name) {}
+    VariableAST(
+        std::string &name, 
+        std::shared_ptr<SymbolTable> symTable, 
+        type_t type,
+        bool is_array=false
+    )
+    : ExprAST(type, is_array), symTable(symTable), name(name) {}
 
     ~VariableAST() {
         this->symTable = nullptr;
@@ -134,10 +146,9 @@ public:
     BinaryExprAST(
         operation_t operation, 
         EASTPtr lhs, 
-        EASTPtr rhs, 
-        std::shared_ptr<SymbolTable> symTable
+        EASTPtr rhs
     ) 
-    : ExprAST(symTable), operation(operation), lhs(lhs), rhs(rhs) {}
+    : ExprAST(), operation(operation), lhs(lhs), rhs(rhs) {}
     
     std::vector<EASTPtr> getChildren() { return { this->rhs, this->lhs }; };
 
@@ -151,10 +162,9 @@ public:
 
     UnaryExprAST(
         operation_t operation, 
-        EASTPtr operand, 
-        std::shared_ptr<SymbolTable> symTable
+        EASTPtr operand 
     )
-    : ExprAST(symTable), operation(operation), operand(operand) {}
+    : ExprAST(), operation(operation), operand(operand) {}
 
     std::vector<EASTPtr> getChildren() { return { operand }; };
 
@@ -163,6 +173,7 @@ public:
 
 class CallExprAST : public ExprAST {
 public:
+    std::shared_ptr<SymbolTable> symTable;
     std::string callee;
     std::vector<EASTPtr> arguments;
 
@@ -171,7 +182,7 @@ public:
         std::vector<EASTPtr> arguments,
         std::shared_ptr<SymbolTable> symTable
     )
-    : ExprAST(symTable), callee(callee), arguments(arguments) {}
+    : ExprAST(), symTable(symTable), callee(callee), arguments(arguments) {}
 
     std::vector<EASTPtr> getChildren() { return arguments; };
 
@@ -201,7 +212,7 @@ public:
         std::shared_ptr<Prototype> proto, 
         std::shared_ptr<ExprListAST> body,
         std::shared_ptr<SymbolTable> symTable
-    ) : ExprAST(symTable), proto(proto), body(body) {}
+    ) : ExprAST(), proto(proto), body(body) {}
 
     std::vector<EASTPtr> getChildren() { return { body }; };
 
@@ -215,10 +226,9 @@ public:
 
     IfStatementAST(
         EASTPtr condition, 
-        EASTPtr body, 
-        std::shared_ptr<SymbolTable> symTable
+        EASTPtr body
     )
-    : ExprAST(symTable), condition(condition), 
+    : ExprAST(), condition(condition), 
         body(body) {}
     
     std::vector<EASTPtr> getChildren() { return { condition, body }; };
@@ -233,10 +243,9 @@ public:
 
     WhileStatementAST(
         EASTPtr condition, 
-        EASTPtr body, 
-        std::shared_ptr<SymbolTable> symTable
+        EASTPtr body 
     )
-    : ExprAST(symTable), condition(condition), 
+    : ExprAST(), condition(condition), 
         body(body) {}
 
     std::vector<EASTPtr> getChildren() { return { condition, body }; };
@@ -252,8 +261,8 @@ public:
     ArrayIndexAST(
         std::shared_ptr<VariableAST> array, 
         EASTPtr index,
-        std::shared_ptr<SymbolTable> symTable
-    ) : ExprAST(symTable), array(array), index(index) {}
+        type_t type
+    ) : ExprAST(type), array(array), index(index) {}
 
     std::vector<EASTPtr> getChildren() { return { array, index }; };
 

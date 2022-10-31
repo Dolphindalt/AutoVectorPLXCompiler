@@ -55,6 +55,7 @@ private:
     AST parseTermTail();
     AST parseFactor();
     AST parseNumber();
+    AST parseVariable();
     st_entry_t parseType();
 
     void tryMatchTerminal(

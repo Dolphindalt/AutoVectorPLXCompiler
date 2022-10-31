@@ -16,6 +16,18 @@ typedef enum type {
     NO_TYPE
 } type_t;
 
+static std::map<type_t, std::string> typeToStringMap = {
+    {UNKNOWN, "UNKNOWN"},
+    {INT, "INT"},
+    {FLOAT, "FLOAT"},
+    {VOID, "VOID"},
+    {NO_TYPE, "NO_TYPE"}
+};
+
+inline std::string typeToString(const type_t t) { 
+    return typeToStringMap.at(t); 
+};
+
 typedef struct symbol_table_entry {
     // Parser information.
     token_t token;
@@ -23,6 +35,7 @@ typedef struct symbol_table_entry {
     bool isAssigned = false;
     bool isArray = false;
     bool isLiteral = false;
+    bool isProcedure = false;
     uint64_t arraySize = 0;
     type_t type = NO_TYPE;
 } st_entry_t;

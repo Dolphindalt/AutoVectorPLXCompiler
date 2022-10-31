@@ -112,3 +112,39 @@ TEST_CASE("Test Case 2", "[Lexer]") {
         );
     }
 }
+
+TEST_CASE("Floating Point Test", "[Lexer]") {
+    const char *file_path = "../test/test_code/test3.p0";
+    const int token_count = 44;
+    token_class_t expected_types[token_count] = {
+        VAR_KEYWORD, INT_TYPE_KEYWORD, LEFT_SQUARE_BRACKET, INT_NUMBER_LITERAL,
+        RIGHT_SQUARE_BRACKET, IDENTIFIER, COMMA,
+        INT_TYPE_KEYWORD, IDENTIFIER, COMMA,
+        FLOAT_TYPE_KEYWORD, IDENTIFIER, SEMICOLON,
+
+        BEGIN_KEYWORD,
+        IDENTIFIER, DEFINE_EQUALS, FLOAT_NUMBER_LITERAL, SEMICOLON,
+        IDENTIFIER, DEFINE_EQUALS, INT_NUMBER_LITERAL, SEMICOLON,
+
+        WHILE_KEYWORD, IDENTIFIER, COMPARE_OP, INT_NUMBER_LITERAL, DO_KEYWORD,
+        BEGIN_KEYWORD,
+        IDENTIFIER, LEFT_SQUARE_BRACKET, IDENTIFIER, RIGHT_SQUARE_BRACKET,
+        DEFINE_EQUALS, INT_NUMBER_LITERAL, SEMICOLON,
+        IDENTIFIER, DEFINE_EQUALS, IDENTIFIER, ADD_OP, INT_NUMBER_LITERAL,
+        END_KEYWORD,
+
+        END_KEYWORD,
+        PERIOD,
+        END_OF_FILE
+    };
+
+    Lexer lexer;
+    token_stream_t token_stream = lexer.lex(file_path);
+
+    for (int i = 0; i < token_count; i++) {
+        REQUIRE(
+            tokenTypeToString(token_stream.at(i).type) == 
+            tokenTypeToString(expected_types[i])
+        );
+    }
+}

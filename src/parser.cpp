@@ -47,7 +47,7 @@ ASTHead Parser::parseProgram() {
 
 ASTHead Parser::parseBlock() {
     std::shared_ptr<ExprListAST> blockNode = 
-        std::make_shared<ExprListAST>(this->currentScope());
+        std::make_shared<ExprListAST>();
 
     token_t token = this->peekNextToken();
 
@@ -85,7 +85,7 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
     EASTPtr number = this->parseNumber();
 
     EASTPtr variable = std::make_shared<VariableAST>(
-        identifier.lexeme, this->currentScope()
+        identifier.lexeme, this->currentScope(), typeInfo.type, typeInfo.isArray
     );
 
     typeInfo.isConstant = true;
@@ -98,8 +98,7 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
         = std::make_shared<BinaryExprAST>(
             ASSIGNMENT, 
             variable, 
-            number,
-            this->currentScope()
+            number
         );
     parent->addChild(binAST);
     
@@ -123,7 +122,9 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     EASTPtr number = this->parseNumber();
     EASTPtr variable = std::make_shared<VariableAST>(
         identifier.lexeme,
-        this->currentScope()
+        this->currentScope(),
+        typeInfo.type,
+        typeInfo.isArray
     );
 
     typeInfo.isConstant = true;
@@ -135,8 +136,7 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     EASTPtr binAST 
         = std::make_shared<BinaryExprAST>(
             ASSIGNMENT, variable, 
-            number,
-            this->currentScope()
+            number
         );
     parent->addChild(binAST);
 }
@@ -151,7 +151,9 @@ void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
 
     EASTPtr variable = std::make_shared<VariableAST>(
         identifier.lexeme, 
-        this->currentScope()
+        this->currentScope(),
+        typeInfo.type,
+        typeInfo.isArray
     );
 
     typeInfo.isConstant = false;
@@ -161,7 +163,7 @@ void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->currentScope()->insert(identifier.lexeme, typeInfo);
 
     EASTPtr declaration = std::make_shared<UnaryExprAST>(
-        ASSIGNMENT, variable, this->currentScope()
+        ASSIGNMENT, variable
     );
     parent->addChild(declaration);
 
@@ -184,7 +186,9 @@ void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {
 
     EASTPtr variable = std::make_shared<VariableAST>(
         identifier.lexeme, 
-        this->currentScope()
+        this->currentScope(),
+        typeInfo.type,
+        typeInfo.isArray
     );
 
     typeInfo.isConstant = false;
@@ -194,7 +198,7 @@ void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {
     this->currentScope()->insert(identifier.lexeme, typeInfo);
 
     EASTPtr declaration = std::make_shared<UnaryExprAST>(
-        ASSIGNMENT, variable, this->currentScope()
+        ASSIGNMENT, variable
     );
     parent->addChild(declaration);
 }
@@ -207,8 +211,8 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
     token_t procedure_id = this->getNextToken();
     this->tryMatchTerminal(procedure_id, IDENTIFIER);
 
+    // Parse all arguments.
     std::vector<std::shared_ptr<VariableAST>> arguments;
-
     token_t peek = this->peekNextToken();
     if (peek.type == LEFT_PAREN) {
         this->tryMatchTerminal(this->getNextToken(), LEFT_PAREN);
@@ -216,8 +220,8 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
         this->tryMatchTerminal(this->getNextToken(), RIGHT_PAREN);
     }
 
+    // Parse return type.
     std::shared_ptr<VariableAST> returnId = nullptr;
-
     peek = this->peekNextToken();
     // First set of type.
     if (peek.type == INT_NUMBER_LITERAL || peek.type == FLOAT_NUMBER_LITERAL) {
@@ -232,12 +236,13 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
         this->currentScope()->insert(ident.lexeme, typeInfo);
 
         returnId = std::make_shared<VariableAST>(
-            ident.lexeme, this->currentScope()
+            ident.lexeme, this->currentScope(), typeInfo.type, typeInfo.isArray
         );
     }
 
     this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
 
+    // Parse block.
     std::shared_ptr<ExprListAST> blockBody = this->parseBlock();
 
     this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
@@ -249,13 +254,19 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
             returnId
         );
 
+    this->exitOldScope();
+
+    st_entry_t procedureTypeInfo;
+    procedureTypeInfo.isProcedure = true;
+    procedureTypeInfo.type = (returnId != nullptr) ? returnId->type : VOID;
+
+    this->currentScope()->insert(prototype->name, procedureTypeInfo);
+
     EASTPtr procedure = std::make_shared<ProcedureAST>(
         prototype, blockBody, this->currentScope()
     );
 
     parent->addChild(procedure);
-
-    this->exitOldScope();
 }
 
 std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
@@ -274,7 +285,9 @@ std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
     arguments.push_back(
         std::make_shared<VariableAST>(
             identifier.lexeme, 
-            this->currentScope()
+            this->currentScope(),
+            typeInfo.type,
+            typeInfo.isArray
         )
     );
 
@@ -294,7 +307,9 @@ std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
         arguments.push_back(
             std::make_shared<VariableAST>(
                 identifier.lexeme, 
-                this->currentScope()
+                this->currentScope(),
+                typeInfo.type,
+                typeInfo.isArray
             )
         );
 
@@ -308,12 +323,7 @@ AST Parser::parseStatement() {
     const token_t token = this->peekNextToken();
     switch (token.type) {
         case IDENTIFIER: {
-            token_t identifier = this->getNextToken();
-            this->tryMatchTerminal(identifier, IDENTIFIER);
-            EASTPtr lhs = std::make_shared<VariableAST>(
-                identifier.lexeme, 
-                this->currentScope()
-            );
+            EASTPtr lhs = this->parseVariable();
 
             this->tryMatchTerminal(this->getNextToken(), DEFINE_EQUALS);
 
@@ -321,9 +331,8 @@ AST Parser::parseStatement() {
 
             EASTPtr binExpr = std::make_shared<BinaryExprAST>(
                 ASSIGNMENT, 
-                lhs, 
-                rhs,
-                this->currentScope()
+                lhs,
+                rhs
             );
 
             return binExpr;
@@ -352,7 +361,7 @@ AST Parser::parseStatement() {
             EASTPtr toWrite = this->parseExpression();
 
             EASTPtr write = std::make_shared<UnaryExprAST>(
-                WRITE, toWrite, this->currentScope()
+                WRITE, toWrite
             );
 
             return write;
@@ -362,13 +371,22 @@ AST Parser::parseStatement() {
             token_t identifier = this->getNextToken();
             this->tryMatchTerminal(identifier, IDENTIFIER);
 
+            st_entry_t typeInfo;
+            unsigned int level;
+            this->currentScope()->lookup(token.lexeme, &level, &typeInfo);
+
+            ASSERT(typeInfo.type != UNKNOWN);
+            ASSERT(typeInfo.type != NO_TYPE);
+
             EASTPtr toReadTo = std::make_shared<VariableAST>(
                 identifier.lexeme, 
-                this->currentScope()
+                this->currentScope(),
+                typeInfo.type,
+                typeInfo.isArray
             );
 
             EASTPtr read = std::make_shared<UnaryExprAST>(
-                READ, toReadTo, this->currentScope()
+                READ, toReadTo
             );
 
             return read;
@@ -379,7 +397,7 @@ AST Parser::parseStatement() {
             this->tryMatchTerminal(this->getNextToken(), BEGIN_KEYWORD);
 
             std::shared_ptr<ExprListAST> exprList 
-                = std::make_shared<ExprListAST>(this->currentScope());
+                = std::make_shared<ExprListAST>();
 
             EASTPtr statement = this->parseStatement();
             exprList->addChild(statement);
@@ -403,7 +421,7 @@ AST Parser::parseStatement() {
             EASTPtr body = this->parseStatement();
 
             return std::make_shared<IfStatementAST>(
-                condition, body, this->currentScope()
+                condition, body
             );
         }
         case WHILE_KEYWORD: {
@@ -414,7 +432,7 @@ AST Parser::parseStatement() {
             EASTPtr body = this->parseStatement();
 
             return std::make_shared<WhileStatementAST>(
-                condition, body, this->currentScope()
+                condition, body
             );
         }
         default:
@@ -431,7 +449,7 @@ AST Parser::parseCondition() {
             this->tryMatchTerminal(this->getNextToken(), ODD_OP);
             EASTPtr operand = this->parseExpression();
             return std::make_shared<UnaryExprAST>(
-                ODD, operand, this->currentScope()
+                ODD, operand
             );
         }
         default: {
@@ -441,7 +459,7 @@ AST Parser::parseCondition() {
             operation_t op = cmpOpMap.at(cmpOp.lexeme);
             EASTPtr rhs = this->parseExpression();
             return std::make_shared<BinaryExprAST>(
-                op, lhs, rhs, this->currentScope()
+                op, lhs, rhs
             );
         }
     }
@@ -462,7 +480,7 @@ AST Parser::parseExpression() {
 
     if (is_unary) {
         lhs = std::make_shared<UnaryExprAST>(
-            unary_op, lhs, this->currentScope()
+            unary_op, lhs
         );
     }
 
@@ -471,7 +489,7 @@ AST Parser::parseExpression() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseExpressionTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs, this->currentScope()
+            op, lhs, rhs
         );
     }
 
@@ -487,7 +505,7 @@ AST Parser::parseExpressionTail() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseExpressionTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs, this->currentScope()
+            op, lhs, rhs
         );
     }
 
@@ -502,7 +520,7 @@ AST Parser::parseTerm() {
         operation_t op = cmpOpMap.at(next.lexeme);        
         EASTPtr rhs = this->parseTermTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs, this->currentScope()
+            op, lhs, rhs
         );
     }
 
@@ -517,7 +535,7 @@ AST Parser::parseTermTail() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseTermTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs, this->currentScope()
+            op, lhs, rhs
         );
     }
 
@@ -528,29 +546,7 @@ AST Parser::parseFactor() {
     token_t token = this->peekNextToken();
     switch (token.type) {
         case IDENTIFIER: {
-            this->tryMatchTerminal(this->getNextToken(), IDENTIFIER);
-
-            auto variable = std::make_shared<VariableAST>(
-                token.lexeme,
-                this->currentScope()
-            );
-
-            if (this->peekNextToken().type == LEFT_SQUARE_BRACKET) {
-                this->tryMatchTerminal(
-                    this->getNextToken(), LEFT_SQUARE_BRACKET
-                );
-                EASTPtr expression = this->parseExpression();
-                this->tryMatchTerminal(
-                    this->getNextToken(), RIGHT_SQUARE_BRACKET
-                );
-                return std::make_shared<ArrayIndexAST>(
-                    variable, 
-                    expression, 
-                    this->currentScope()
-                );
-            }
-
-            return variable;
+            return this->parseVariable();
         }
         case INT_NUMBER_LITERAL:
         case FLOAT_NUMBER_LITERAL:
@@ -601,7 +597,8 @@ AST Parser::parseNumber() {
             number = std::make_shared<NumberAST>(
                 next.lexeme,
                 (void *)&value,
-                this->currentScope()
+                this->currentScope(),
+                INT
             );
             break;
         }
@@ -612,7 +609,8 @@ AST Parser::parseNumber() {
             number = std::make_shared<NumberAST>(
                 next.lexeme,
                 (void *)&value, 
-                this->currentScope()
+                this->currentScope(),
+                FLOAT
             );
             break;
         }
@@ -629,12 +627,28 @@ AST Parser::parseNumber() {
     if (is_unary) {
         return std::make_shared<UnaryExprAST>(
             unary_op, 
-            number, 
-            this->currentScope()
+            number
         );
     }
 
     return number;
+}
+
+AST Parser::parseVariable() {
+    token_t ident = this->getNextToken(); 
+    this->tryMatchTerminal(ident, IDENTIFIER);
+    std::shared_ptr<VariableAST> var = std::make_unique<VariableAST>(
+        ident.lexeme, this->currentScope(), UNKNOWN
+    );
+
+    if (this->peekNextToken().type == LEFT_SQUARE_BRACKET) {
+        this->tryMatchTerminal(this->getNextToken(), LEFT_SQUARE_BRACKET);
+        EASTPtr result = this->parseExpression();
+        this->tryMatchTerminal(this->getNextToken(), RIGHT_SQUARE_BRACKET);
+        return std::make_unique<ArrayIndexAST>(var, result, UNKNOWN);
+    }
+
+    return var;
 }
 
 st_entry_t Parser::parseType() {
@@ -700,10 +714,11 @@ void Parser::raiseMismatchError(
 ) const {
     (void) fprintf(
         stderr,
-        "expected %s got %s "
+        "expected %s got %s:%s "
         "at %s line %d column %d\n",
         tokenTypeToString(expected).c_str(),
         actual.lexeme.c_str(),
+        tokenTypeToString(actual.type).c_str(),
         actual.file.c_str(),
         actual.line,
         actual.column
