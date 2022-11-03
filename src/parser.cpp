@@ -39,13 +39,13 @@ token_t Parser::peekNextToken() const {
 
 ASTHead Parser::parseProgram() {
     
-    ASTHead programBlock = this->parseBlock();
+    ASTHead programBlock = this->parseRootBlock();
 
     this->tryMatchTerminal(this->getNextToken(), PERIOD);
     return programBlock;
 }
 
-ASTHead Parser::parseBlock() {
+ASTHead Parser::parseRootBlock() {
     std::shared_ptr<ExprListAST> blockNode = 
         std::make_shared<ExprListAST>();
 
@@ -72,27 +72,57 @@ ASTHead Parser::parseBlock() {
     return blockNode;
 }
 
+ASTHead Parser::parseBlock() {
+    std::shared_ptr<ExprListAST> blockNode = 
+        std::make_shared<ExprListAST>();
+
+    token_t token = this->peekNextToken();
+
+    if (token.type == CONST_KEYWORD) {
+        this->parseConstDeclarations(blockNode);
+        token = this->peekNextToken();    
+    }
+
+    if (token.type == VAR_KEYWORD) {
+        this->parseVarDeclarations(blockNode);
+        token = this->peekNextToken();
+    }
+
+    blockNode->addChild(this->parseStatement());
+    return blockNode;
+}
+
 void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(this->getNextToken(), CONST_KEYWORD);
 
-    st_entry_t typeInfo = this->parseType();
+    type_t type;
+    bool is_array;
+    unsigned int array_size;
+    this->parseType(&type, &is_array, &array_size);
 
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
-
     this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
     EASTPtr number = this->parseNumber();
 
+    st_entry_t type_info;
+    type_info.entry_type = ST_VARIABLE;
+    type_info.variable.isConstant = true;
+    type_info.variable.isAssigned = true;
+    type_info.variable.isArray = is_array;
+    type_info.variable.arraySize = array_size;
+    type_info.variable.type = type;
+    type_info.token = identifier;
+
     EASTPtr variable = std::make_shared<VariableAST>(
-        identifier.lexeme, this->currentScope(), typeInfo.type, typeInfo.isArray
+        identifier.lexeme, 
+        this->currentScope(), 
+        type_info.variable.type, 
+        type_info.variable.isArray
     );
 
-    typeInfo.isConstant = true;
-    typeInfo.isAssigned = true;
-    typeInfo.token = identifier;
-
-    this->currentScope()->insert(identifier.lexeme, typeInfo);
+    this->currentScope()->insert(identifier.lexeme, type_info);
 
     EASTPtr binAST 
         = std::make_shared<BinaryExprAST>(
@@ -113,25 +143,34 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
 void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(this->getNextToken(), COMMA);
 
-    st_entry_t typeInfo = this->parseType();
+    type_t type;
+    bool is_array;
+    unsigned int array_size;
+    this->parseType(&type, &is_array, &array_size);
 
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
     this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
     EASTPtr number = this->parseNumber();
+
+    st_entry_t type_info;
+    type_info.entry_type = ST_VARIABLE;
+    type_info.variable.isConstant = true;
+    type_info.variable.isAssigned = true;
+    type_info.variable.isArray = is_array;
+    type_info.variable.arraySize = array_size;
+    type_info.variable.type = type;
+    type_info.token = identifier;
+
     EASTPtr variable = std::make_shared<VariableAST>(
         identifier.lexeme,
         this->currentScope(),
-        typeInfo.type,
-        typeInfo.isArray
+        type_info.variable.type,
+        type_info.variable.isArray
     );
 
-    typeInfo.isConstant = true;
-    typeInfo.isAssigned = true;
-    typeInfo.token = identifier;
-
-    this->currentScope()->insert(identifier.lexeme, typeInfo);
+    this->currentScope()->insert(identifier.lexeme, type_info);
 
     EASTPtr binAST 
         = std::make_shared<BinaryExprAST>(
@@ -144,23 +183,31 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
 void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(this->getNextToken(), VAR_KEYWORD);
 
-    st_entry_t typeInfo = this->parseType();
+    type_t type;
+    bool is_array;
+    unsigned int array_size;
+    this->parseType(&type, &is_array, &array_size);
 
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
+    st_entry_t type_info;
+    type_info.entry_type = ST_VARIABLE;
+    type_info.variable.isConstant = false;
+    type_info.variable.isAssigned = false;
+    type_info.variable.isArray = is_array;
+    type_info.variable.arraySize = array_size;
+    type_info.variable.type = type;
+    type_info.token = identifier;
+
     EASTPtr variable = std::make_shared<VariableAST>(
         identifier.lexeme, 
         this->currentScope(),
-        typeInfo.type,
-        typeInfo.isArray
+        type_info.variable.type,
+        type_info.variable.isArray
     );
 
-    typeInfo.isConstant = false;
-    typeInfo.isAssigned = false;
-    typeInfo.token = identifier;
-
-    this->currentScope()->insert(identifier.lexeme, typeInfo);
+    this->currentScope()->insert(identifier.lexeme, type_info);
 
     EASTPtr declaration = std::make_shared<UnaryExprAST>(
         ASSIGNMENT, variable
@@ -179,23 +226,31 @@ void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
 void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {    
     this->tryMatchTerminal(this->getNextToken(), COMMA);
 
-    st_entry_t typeInfo = this->parseType();
+    type_t type;
+    bool is_array;
+    unsigned int array_size;
+    this->parseType(&type, &is_array, &array_size);
 
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
+    st_entry_t type_info;
+    type_info.entry_type = ST_VARIABLE;
+    type_info.variable.isConstant = false;
+    type_info.variable.isAssigned = false;
+    type_info.variable.isArray = is_array;
+    type_info.variable.arraySize = array_size;
+    type_info.variable.type = type;
+    type_info.token = identifier;
+
     EASTPtr variable = std::make_shared<VariableAST>(
         identifier.lexeme, 
         this->currentScope(),
-        typeInfo.type,
-        typeInfo.isArray
+        type_info.variable.type,
+        type_info.variable.isArray
     );
 
-    typeInfo.isConstant = false;
-    typeInfo.isAssigned = false;
-    typeInfo.token = identifier;
-
-    this->currentScope()->insert(identifier.lexeme, typeInfo);
+    this->currentScope()->insert(identifier.lexeme, type_info);
 
     EASTPtr declaration = std::make_shared<UnaryExprAST>(
         ASSIGNMENT, variable
@@ -225,18 +280,30 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
     peek = this->peekNextToken();
     // First set of type.
     if (peek.type == INT_NUMBER_LITERAL || peek.type == FLOAT_NUMBER_LITERAL) {
-        st_entry_t typeInfo = this->parseType();
-        typeInfo.isAssigned = false;
+        type_t type;
+        bool is_array;
+        unsigned int array_size;
+        this->parseType(&type, &is_array, &array_size);
+
+        st_entry_t type_info;
+        type_info.entry_type = ST_VARIABLE;
+        type_info.variable.type = type;
+        type_info.variable.isArray = is_array;
+        type_info.variable.arraySize = array_size;
+        type_info.variable.isAssigned = false;
+        type_info.variable.isConstant = false;
 
         token_t ident = this->getNextToken();
         this->tryMatchTerminal(ident, IDENTIFIER);
 
-        typeInfo.token = ident;
+        type_info.token = ident;
 
-        this->currentScope()->insert(ident.lexeme, typeInfo);
+        this->currentScope()->insert(ident.lexeme, type_info);
 
         returnId = std::make_shared<VariableAST>(
-            ident.lexeme, this->currentScope(), typeInfo.type, typeInfo.isArray
+            ident.lexeme, this->currentScope(), 
+            type_info.variable.type, 
+            type_info.variable.isArray
         );
     }
 
@@ -256,11 +323,25 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
 
     this->exitOldScope();
 
-    st_entry_t procedureTypeInfo;
-    procedureTypeInfo.isProcedure = true;
-    procedureTypeInfo.type = (returnId != nullptr) ? returnId->type : VOID;
+    if (prototype->arguments.size() >= MAXIMUM_ARGUMENTS) {
+        ERROR_LOG(
+            "the maxium number of arguments is %d violated by %s",
+            MAXIMUM_ARGUMENTS,
+            prototype->name.c_str()
+        );
+        exit(EXIT_FAILURE);
+    }
 
-    this->currentScope()->insert(prototype->name, procedureTypeInfo);
+    st_entry_t func_info;
+    func_info.entry_type = ST_FUNCTION;
+    func_info.procedure.argumentsLength = prototype->arguments.size();
+    for (size_t i = 0; i < prototype->arguments.size(); i++) {
+        func_info.procedure.argumentTypes[i] = prototype->arguments.at(i)->type;
+    }
+    func_info.procedure.returnType = 
+        (returnId != nullptr) ? returnId->type : VOID;
+
+    this->currentScope()->insert(prototype->name, func_info);
 
     EASTPtr procedure = std::make_shared<ProcedureAST>(
         prototype, blockBody, this->currentScope()
@@ -273,47 +354,56 @@ std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
     
     std::vector<std::shared_ptr<VariableAST>> arguments;
 
-    st_entry_t typeInfo = this->parseType();
-    // All function parameters are considered to be assigned.
-    typeInfo.isAssigned = true;
+    type_t type;
+    bool is_array;
+    unsigned int array_size;
+    this->parseType(&type, &is_array, &array_size);
 
     token_t identifier = this->getNextToken();
     this->tryMatchTerminal(identifier, IDENTIFIER);
 
-    typeInfo.token = identifier;
+    st_entry_t type_info;
+    type_info.entry_type = ST_VARIABLE;
+    type_info.variable.isConstant = false;
+    type_info.variable.isAssigned = true;
+    type_info.variable.isArray = is_array;
+    type_info.variable.arraySize = array_size;
+    type_info.token = identifier;
 
     arguments.push_back(
         std::make_shared<VariableAST>(
             identifier.lexeme, 
             this->currentScope(),
-            typeInfo.type,
-            typeInfo.isArray
+            type_info.variable.type,
+            type_info.variable.isArray
         )
     );
 
-    this->currentScope()->insert(identifier.lexeme, typeInfo);
+    this->currentScope()->insert(identifier.lexeme, type_info);
 
     while (this->peekNextToken().type == COMMA) {
         this->tryMatchTerminal(this->getNextToken(), COMMA);
 
-        typeInfo = this->parseType();
-        typeInfo.isAssigned = true;
+        this->parseType(&type, &is_array, &array_size);
+        type_info.variable.type = type;
+        type_info.variable.isArray = is_array;
+        type_info.variable.arraySize = array_size;
 
         identifier = this->getNextToken();
         this->tryMatchTerminal(identifier, IDENTIFIER);
 
-        typeInfo.token = identifier;
+        type_info.token = identifier;
 
         arguments.push_back(
             std::make_shared<VariableAST>(
                 identifier.lexeme, 
                 this->currentScope(),
-                typeInfo.type,
-                typeInfo.isArray
+                type_info.variable.type,
+                type_info.variable.isArray
             )
         );
 
-        this->currentScope()->insert(identifier.lexeme, typeInfo);
+        this->currentScope()->insert(identifier.lexeme, type_info);
     }
     return arguments;
 }
@@ -375,14 +465,13 @@ AST Parser::parseStatement() {
             unsigned int level;
             this->currentScope()->lookup(token.lexeme, &level, &typeInfo);
 
-            ASSERT(typeInfo.type != UNKNOWN);
-            ASSERT(typeInfo.type != NO_TYPE);
+            ASSERT(typeInfo.entry_type == ST_VARIABLE);
 
             EASTPtr toReadTo = std::make_shared<VariableAST>(
                 identifier.lexeme, 
                 this->currentScope(),
-                typeInfo.type,
-                typeInfo.isArray
+                typeInfo.variable.type,
+                typeInfo.variable.isArray
             );
 
             EASTPtr read = std::make_shared<UnaryExprAST>(
@@ -584,16 +673,15 @@ AST Parser::parseNumber() {
     EASTPtr number;
 
     st_entry_t typeInfo;
-    typeInfo.isConstant = true;
-    typeInfo.isAssigned = true;
-    typeInfo.isLiteral = true;
+    typeInfo.entry_type = ST_LITERAL;
     typeInfo.token = next;
 
     switch (next.type) {
         case INT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, INT_NUMBER_LITERAL);
             uint64_t value = atoi(next.lexeme.c_str());
-            typeInfo.type = INT;
+            typeInfo.literal.type = INT;
+            memcpy(typeInfo.literal.value, &value, LITERAL_BYTE_LEN);
             number = std::make_shared<NumberAST>(
                 next.lexeme,
                 (void *)&value,
@@ -605,7 +693,8 @@ AST Parser::parseNumber() {
         case FLOAT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, FLOAT_NUMBER_LITERAL);
             double value = atof(next.lexeme.c_str());
-            typeInfo.type = FLOAT;
+            typeInfo.literal.type = FLOAT;
+            memcpy(typeInfo.literal.value, &value, LITERAL_BYTE_LEN);
             number = std::make_shared<NumberAST>(
                 next.lexeme,
                 (void *)&value, 
@@ -651,21 +740,16 @@ AST Parser::parseVariable() {
     return var;
 }
 
-st_entry_t Parser::parseType() {
-    st_entry_t st_ent;
-    st_ent.isArray = false;
-    st_ent.isConstant = false;
-    st_ent.isAssigned = false;
-
+void Parser::parseType(type_t *type, bool *is_array, unsigned int *array_size) {
     const token_t next = this->getNextToken();
     switch (next.type) {
         case INT_TYPE_KEYWORD:
             this->tryMatchTerminal(next, INT_TYPE_KEYWORD);
-            st_ent.type = INT;
+            *type = INT;
             break;
         case FLOAT_TYPE_KEYWORD:
             this->tryMatchTerminal(next, FLOAT_TYPE_KEYWORD);
-            st_ent.type = FLOAT;
+            *type = FLOAT;
             break;
         default:
             raiseMismatchError(next, { 
@@ -680,11 +764,9 @@ st_entry_t Parser::parseType() {
         const token_t int_literal = this->getNextToken();
         this->tryMatchTerminal(int_literal, INT_NUMBER_LITERAL);
         this->tryMatchTerminal(this->getNextToken(), RIGHT_SQUARE_BRACKET);
-        st_ent.isArray = true;
-        st_ent.arraySize = atoi(int_literal.lexeme.c_str());
+        *is_array = true;
+        *array_size = atoi(int_literal.lexeme.c_str());
     }
-
-    return st_ent;
 }
 
 void Parser::tryMatchTerminal(

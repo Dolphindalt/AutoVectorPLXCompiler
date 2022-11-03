@@ -40,6 +40,7 @@ private:
     token_t peekNextToken() const;
 
     ASTHead parseProgram();
+    ASTHead parseRootBlock();
     ASTHead parseBlock();
     void parseConstDeclarations(std::shared_ptr<ExprListAST> parent);
     void parseConstDeclarationList(std::shared_ptr<ExprListAST> parent);
@@ -56,7 +57,7 @@ private:
     AST parseFactor();
     AST parseNumber();
     AST parseVariable();
-    st_entry_t parseType();
+    void parseType(type_t *type, bool *is_array, unsigned int *array_size);
 
     void tryMatchTerminal(
         const token_t &actual, 

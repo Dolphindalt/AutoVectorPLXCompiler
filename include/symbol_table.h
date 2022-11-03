@@ -1,12 +1,21 @@
 #ifndef SYMBOL_TABLE_H__
 #define SYMBOL_TABLE_H__
 
+#define MAXIMUM_ARGUMENTS 64
+#define LITERAL_BYTE_LEN 8
+
 #include <lexer.h>
 #include <string>
 #include <memory>
 #include <map>
 
 typedef std::string address;
+
+typedef enum st_entry_type {
+    ST_VARIABLE,
+    ST_LITERAL,
+    ST_FUNCTION
+} st_entry_type_t;
 
 typedef enum type { 
     UNKNOWN = 0,
@@ -29,15 +38,27 @@ inline std::string typeToString(const type_t t) {
 };
 
 typedef struct symbol_table_entry {
-    // Parser information.
+    st_entry_type_t entry_type;
     token_t token;
-    bool isConstant = false;
-    bool isAssigned = false;
-    bool isArray = false;
-    bool isLiteral = false;
-    bool isProcedure = false;
-    uint64_t arraySize = 0;
-    type_t type = NO_TYPE;
+
+    union {
+        bool isConstant;
+        bool isAssigned;
+        bool isArray;
+        uint64_t arraySize;
+        type_t type;
+    } variable;
+
+    union {
+        char value[LITERAL_BYTE_LEN];
+        type_t type;
+    } literal;
+
+    union {
+        uint8_t argumentsLength;
+        type_t argumentTypes[MAXIMUM_ARGUMENTS];
+        type_t returnType;
+    } procedure;
 } st_entry_t;
 
 class SymbolTable {

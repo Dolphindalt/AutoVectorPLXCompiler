@@ -1,7 +1,7 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.11)
 
 enable_language(CXX)
-set(CMAKE_CXX_FLAGS "-g -Wall")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17")
 
 project (Compiler)
 

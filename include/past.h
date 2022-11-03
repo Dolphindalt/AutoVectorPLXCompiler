@@ -8,7 +8,9 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <optional>
 #include <symbol_table.h>
+#include <3ac.h>
 
 #define NUMBER_SIZE_BYTES 8
 
@@ -49,6 +51,23 @@ static std::map<std::string, operation_t> cmpOpMap = {
     {"/", DIVISION}
 };
 
+static std::map<operation_t, tac_op_t> treeTo3acOpMap = {
+    {BOOL_E, TAC_EQUALS},
+    {BOOL_LE, TAC_LE_THAN},
+    {BOOL_GE, TAC_GE_THAN},
+    {BOOL_L, TAC_LESS_THAN},
+    {BOOL_G, TAC_GREATER_THAN},
+    {BOOL_NE, TAC_NOT_EQUALS},
+    {ADDITION, TAC_ADD},
+    {SUBTRACTION, TAC_SUB},
+    {MULTIPLICATION, TAC_MULT},
+    {DIVISION, TAC_DIV},
+    {ASSIGNMENT, TAC_ASSIGN},
+    {ODD, TAC_NEGATE},
+    {READ, TAC_READ},
+    {WRITE, TAC_WRITE}
+};
+
 class ExprAST {
 public:
     type_t type;
@@ -66,6 +85,13 @@ public:
 
     // Children should be inorder of desired traversal.
     virtual std::vector<EASTPtr> getChildren() = 0;
+
+    virtual std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    ) { 
+        return std::nullopt;
+    };
 
     static void treeTraversal(
         EASTPtr parent, std::function<void(EASTPtr)> action
@@ -114,6 +140,11 @@ public:
     std::vector<EASTPtr> getChildren() { return {}; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class VariableAST : public ExprAST {
@@ -136,6 +167,11 @@ public:
     std::vector<EASTPtr> getChildren() { return {}; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class BinaryExprAST : public ExprAST {
@@ -153,6 +189,11 @@ public:
     std::vector<EASTPtr> getChildren() { return { this->rhs, this->lhs }; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class UnaryExprAST : public ExprAST {
@@ -169,6 +210,11 @@ public:
     std::vector<EASTPtr> getChildren() { return { operand }; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class CallExprAST : public ExprAST {
@@ -187,6 +233,11 @@ public:
     std::vector<EASTPtr> getChildren() { return arguments; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class Prototype {
@@ -217,6 +268,11 @@ public:
     std::vector<EASTPtr> getChildren() { return { body }; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class IfStatementAST : public ExprAST {
@@ -234,6 +290,11 @@ public:
     std::vector<EASTPtr> getChildren() { return { condition, body }; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class WhileStatementAST : public ExprAST {
@@ -251,6 +312,11 @@ public:
     std::vector<EASTPtr> getChildren() { return { condition, body }; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 class ArrayIndexAST : public ExprAST {
@@ -267,6 +333,11 @@ public:
     std::vector<EASTPtr> getChildren() { return { array, index }; };
 
     void typeChecker();
+
+    std::optional<std::string> generateCode(
+        TACGenerator &, 
+        std::vector<tac_line_t> &
+    );
 };
 
 #endif
