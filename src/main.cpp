@@ -10,6 +10,7 @@
 #include <lexer.h>
 #include <parser.h>
 #include <past.h>
+#include <3ac.h>
 
 const char *argp_program_version = "CPSC 323 Student Compiler";
 const char *argp_program_bug_address = "dcaron@fullerton.edu";
@@ -70,6 +71,15 @@ int main(int argc, char *argv[]) {
     ExprAST::treeTraversal(ast, [](EASTPtr parent) {
         parent->typeChecker();
     });
+
+    TACGenerator tacGenerator;
+    std::vector<tac_line_t> tacCode;
+    ast->generateCode(tacGenerator, tacCode);
+
+    for (auto i = tacCode.begin(); i != tacCode.end(); i++) {
+        tac_line_t line = *i;
+        printf("%s\n", TACGenerator::tacLineToString(line).c_str());
+    }
 
     return EXIT_SUCCESS;
 }

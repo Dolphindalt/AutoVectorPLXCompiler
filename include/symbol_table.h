@@ -1,7 +1,7 @@
 #ifndef SYMBOL_TABLE_H__
 #define SYMBOL_TABLE_H__
 
-#define MAXIMUM_ARGUMENTS 64
+#define MAXIMUM_ARGUMENTS 16
 #define LITERAL_BYTE_LEN 8
 
 #include <lexer.h>
@@ -42,23 +42,27 @@ typedef struct symbol_table_entry {
     token_t token;
 
     union {
-        bool isConstant;
-        bool isAssigned;
-        bool isArray;
-        uint64_t arraySize;
-        type_t type;
-    } variable;
 
-    union {
-        char value[LITERAL_BYTE_LEN];
-        type_t type;
-    } literal;
+        struct {
+            bool isConstant;
+            bool isAssigned;
+            bool isArray;
+            uint64_t arraySize;
+            type_t type;
+        } variable;
 
-    union {
-        uint8_t argumentsLength;
-        type_t argumentTypes[MAXIMUM_ARGUMENTS];
-        type_t returnType;
-    } procedure;
+        struct {
+            char value[LITERAL_BYTE_LEN];
+            type_t type;
+        } literal;
+
+        struct {
+            uint8_t argumentsLength;
+            type_t argumentTypes[MAXIMUM_ARGUMENTS];
+            type_t returnType;
+        } procedure;
+
+    };
 } st_entry_t;
 
 class SymbolTable {

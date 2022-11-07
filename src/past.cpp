@@ -47,6 +47,24 @@ void ExprAST::treeTraversal(
     parent = nullptr;
 }
 
+std::optional<std::string> ExprAST::generateCode(
+        TACGenerator &generator, 
+        std::vector<tac_line_t> &generated
+    ) { 
+        std::vector<EASTPtr> children = this->getChildren();
+        for (
+            auto i = children.begin(); i != children.end(); i++
+        ) {
+            EASTPtr child = *i;
+            if (child != nullptr) {
+                child->generateCode(generator, generated);
+            }
+
+            child = nullptr;
+        }
+        return std::nullopt;
+    };
+
 void ExprListAST::typeChecker() {}
 
 void NumberAST::typeChecker() {
@@ -158,7 +176,7 @@ std::optional<std::string> CallExprAST::generateCode(
     // Semantic analysis guarentees that this function has an entry.
     if (
         (!this->symTable->lookup(this->callee, &level, &func_ent))
-        &&
+        ||
         (func_ent.entry_type != ST_FUNCTION)
     ) {
         unknownProcedureError(this->callee);
@@ -210,9 +228,12 @@ std::optional<std::string> ProcedureAST::generateCode(
 
     this->body->generateCode(generator, generated);
 
-    generator.makeQuad(
-        TAC_ASSIGN, this->proto->returnVariable->name, RETURN_ADDRESS
-    );
+    // Return types are optional.
+    if (this->proto->returnVariable != nullptr) {
+        generator.makeQuad(
+            TAC_ASSIGN, this->proto->returnVariable->name, RETURN_ADDRESS
+        );
+    }
 
     generated.push_back(generator.makeQuad(TAC_EXIT_PROC));
 

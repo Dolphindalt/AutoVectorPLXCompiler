@@ -68,7 +68,12 @@ ASTHead Parser::parseRootBlock() {
         }
     }
 
-    blockNode->addChild(this->parseStatement());
+    EASTPtr statement = this->parseStatement();
+    if (statement != nullptr) {
+        blockNode->addChild(statement);
+        statement = nullptr;
+    }
+    
     return blockNode;
 }
 
@@ -88,7 +93,11 @@ ASTHead Parser::parseBlock() {
         token = this->peekNextToken();
     }
 
-    blockNode->addChild(this->parseStatement());
+    EASTPtr statement = this->parseStatement();
+    if (statement != nullptr) {
+        blockNode->addChild(statement);
+        statement = nullptr;
+    }
     return blockNode;
 }
 
@@ -334,10 +343,13 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
 
     st_entry_t func_info;
     func_info.entry_type = ST_FUNCTION;
+
     func_info.procedure.argumentsLength = prototype->arguments.size();
-    for (size_t i = 0; i < prototype->arguments.size(); i++) {
+
+    for (uint8_t i = 0; i < func_info.procedure.argumentsLength; i++) {
         func_info.procedure.argumentTypes[i] = prototype->arguments.at(i)->type;
     }
+
     func_info.procedure.returnType = 
         (returnId != nullptr) ? returnId->type : VOID;
 
@@ -494,7 +506,10 @@ AST Parser::parseStatement() {
             while (this->peekNextToken().type == SEMICOLON) {
                 this->tryMatchTerminal(this->getNextToken(), SEMICOLON);
                 statement = this->parseStatement();
-                exprList->addChild(statement);
+                if (statement != nullptr) {
+                    exprList->addChild(statement);
+                    statement = nullptr;
+                }
             }
             this->tryMatchTerminal(this->getNextToken(), END_KEYWORD);
 
@@ -503,22 +518,44 @@ AST Parser::parseStatement() {
             return exprList;
         }
         case IF_KEYWORD: {
-            this->tryMatchTerminal(this->getNextToken(), IF_KEYWORD);
+            token_t if_token = this->getNextToken();
+            this->tryMatchTerminal(if_token, IF_KEYWORD);
             EASTPtr condition = this->parseCondition();
 
             this->tryMatchTerminal(this->getNextToken(), THEN_KEYWORD);
             EASTPtr body = this->parseStatement();
+            if (body == nullptr) {
+                ERROR_LOG(
+                    "if statement body cannot be empty "
+                    "in %s at line %d column %d",
+                    if_token.file.c_str(),
+                    if_token.line,
+                    if_token.column
+                );
+                exit(EXIT_FAILURE);
+            }
 
             return std::make_shared<IfStatementAST>(
                 condition, body
             );
         }
         case WHILE_KEYWORD: {
-            this->tryMatchTerminal(this->getNextToken(), WHILE_KEYWORD);
+            token_t while_token = this->getNextToken();
+            this->tryMatchTerminal(while_token, WHILE_KEYWORD);
             EASTPtr condition = this->parseCondition();
 
             this->tryMatchTerminal(this->getNextToken(), DO_KEYWORD);
             EASTPtr body = this->parseStatement();
+            if (body == nullptr) {
+                ERROR_LOG(
+                    "while statement body cannot be empty "
+                    "in %s at line %d column %d",
+                    while_token.file.c_str(),
+                    while_token.line,
+                    while_token.column
+                );
+                exit(EXIT_FAILURE);
+            }
 
             return std::make_shared<WhileStatementAST>(
                 condition, body

@@ -2,6 +2,20 @@
 
 #include <logging.h>
 
+std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
+    std::string result = tacOpToStringMap.at(tac.operation);
+    if (tac.result != "") {
+        result += " " + tac.result;
+    }
+    if (tac.argument1 != "") {
+        result += " " + tac.argument1;
+    }
+    if (tac.argument2 != "") {
+        result += " " + tac.argument2;
+    }
+    return result;
+}
+
 TACGenerator::TACGenerator() : tempCounter(0), labelCounter(0) {}
 
 TACGenerator::~TACGenerator() {}
@@ -35,6 +49,12 @@ tac_line_t TACGenerator::makeQuad(
             break;
         case TAC_UNCOND_JMP:
             // Target label.
+            line.argument1 = address_a;
+            break;
+        case TAC_READ:
+            line.argument1 = address_a;
+            break;
+        case TAC_WRITE:
             line.argument1 = address_a;
             break;
         case TAC_LABEL:

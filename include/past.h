@@ -87,11 +87,9 @@ public:
     virtual std::vector<EASTPtr> getChildren() = 0;
 
     virtual std::optional<std::string> generateCode(
-        TACGenerator &, 
-        std::vector<tac_line_t> &
-    ) { 
-        return std::nullopt;
-    };
+        TACGenerator &generator, 
+        std::vector<tac_line_t> &generated
+    );
 
     static void treeTraversal(
         EASTPtr parent, std::function<void(EASTPtr)> action
