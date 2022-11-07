@@ -9,12 +9,15 @@
 #include <memory>
 #include <map>
 
+#define NO_NEXT_USE (-1)
+
 typedef std::string address;
 
 typedef enum st_entry_type {
     ST_VARIABLE,
     ST_LITERAL,
-    ST_FUNCTION
+    ST_FUNCTION,
+    ST_CODE_GEN
 } st_entry_type_t;
 
 typedef enum type { 
@@ -36,6 +39,11 @@ static std::map<type_t, std::string> typeToStringMap = {
 inline std::string typeToString(const type_t t) { 
     return typeToStringMap.at(t); 
 };
+
+typedef enum liveness {
+    CG_DEAD,
+    CG_LIVE
+} liveness_t;
 
 typedef struct symbol_table_entry {
     st_entry_type_t entry_type;
@@ -61,6 +69,13 @@ typedef struct symbol_table_entry {
             type_t argumentTypes[MAXIMUM_ARGUMENTS];
             type_t returnType;
         } procedure;
+
+        struct {
+            liveness_t liveness;
+            // -1 implies no next use.
+            // Any other number is the line used at.
+            int next_use;
+        } code_gen;
 
     };
 } st_entry_t;

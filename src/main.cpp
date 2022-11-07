@@ -11,6 +11,7 @@
 #include <parser.h>
 #include <past.h>
 #include <3ac.h>
+#include <optimizer/optimizer.h>
 
 const char *argp_program_version = "CPSC 323 Student Compiler";
 const char *argp_program_bug_address = "dcaron@fullerton.edu";
@@ -75,11 +76,10 @@ int main(int argc, char *argv[]) {
     TACGenerator tacGenerator;
     std::vector<tac_line_t> tacCode;
     ast->generateCode(tacGenerator, tacCode);
+    ast = nullptr;
 
-    for (auto i = tacCode.begin(); i != tacCode.end(); i++) {
-        tac_line_t line = *i;
-        printf("%s\n", TACGenerator::tacLineToString(line).c_str());
-    }
+    Optimizer optimizer(tacCode);
+    printf("%s", optimizer.to_string().c_str());
 
     return EXIT_SUCCESS;
 }

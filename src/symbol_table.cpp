@@ -2,7 +2,7 @@
 
 #include <assertions.h>
 
-SymbolTable::SymbolTable() {
+SymbolTable::SymbolTable() : enclosingScope(nullptr), level(0) {
     
 }
 

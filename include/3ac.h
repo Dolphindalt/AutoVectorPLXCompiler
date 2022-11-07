@@ -79,6 +79,9 @@ static std::map<tac_op_t, std::string> tacOpToStringMap = {
 };
 
 typedef struct tac_line {
+public:
+    static bool transfers_control(const tac_line &line);
+
     tac_op_t operation;
     std::string argument1;
     std::string argument2;

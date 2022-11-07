@@ -2,6 +2,23 @@
 
 #include <logging.h>
 
+bool tac_line::transfers_control(const tac_line &line) {
+    switch (line.operation) {
+        case TAC_UNCOND_JMP:
+        case TAC_JMP_E:
+        case TAC_JMP_L:
+        case TAC_JMP_G:
+        case TAC_JMP_NE:
+        case TAC_JMP_ZERO:
+        // Yes, function calls count as a jump.
+        case TAC_CALL:
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = tacOpToStringMap.at(tac.operation);
     if (tac.result != "") {
@@ -67,7 +84,11 @@ tac_line_t TACGenerator::makeQuad(
             break;
         case TAC_CALL:
             // Target label.
-            line.argument1 = address_a;
+            // All functions are made into labels with their name appended
+            // to the label identifier. The calling of the procedure needs
+            // this modification also or it won't jump to the right label.
+            line.argument1 = "$L" + address_a;
+            break;
         case TAC_JMP_E ... TAC_JMP_ZERO:
             // Target label.
             line.argument1 = address_a;
