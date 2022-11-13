@@ -2,7 +2,6 @@
 #define SYMBOL_TABLE_H__
 
 #define MAXIMUM_ARGUMENTS 16
-#define LITERAL_BYTE_LEN 8
 
 #include <lexer.h>
 #include <string>
@@ -37,13 +36,21 @@ static std::map<type_t, std::string> typeToStringMap = {
 };
 
 inline std::string typeToString(const type_t t) { 
-    return typeToStringMap.at(t); 
+    if (typeToStringMap.count(t) > 0) {
+        return typeToStringMap.at(t);
+    }
+    return "INVALID TYPE";
 };
 
 typedef enum liveness {
     CG_DEAD,
     CG_LIVE
 } liveness_t;
+
+typedef union literal_value {
+    uint64_t int_value;
+    _Float64 float_value;
+} literal_value_t;
 
 typedef struct symbol_table_entry {
     st_entry_type_t entry_type;
@@ -57,10 +64,11 @@ typedef struct symbol_table_entry {
             bool isArray;
             uint64_t arraySize;
             type_t type;
+            literal_value_t value;
         } variable;
 
         struct {
-            char value[LITERAL_BYTE_LEN];
+            literal_value_t value;
             type_t type;
         } literal;
 

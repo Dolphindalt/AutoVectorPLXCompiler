@@ -46,10 +46,11 @@ ASTHead Parser::parseProgram() {
 }
 
 ASTHead Parser::parseRootBlock() {
-    std::shared_ptr<ExprListAST> blockNode = 
-        std::make_shared<ExprListAST>();
-
     token_t token = this->peekNextToken();
+
+    std::shared_ptr<ExprListAST> blockNode = 
+        std::make_shared<ExprListAST>(token.file, token.line, token.column);
+
 
     if (token.type == CONST_KEYWORD) {
         this->parseConstDeclarations(blockNode);
@@ -78,10 +79,12 @@ ASTHead Parser::parseRootBlock() {
 }
 
 ASTHead Parser::parseBlock() {
-    std::shared_ptr<ExprListAST> blockNode = 
-        std::make_shared<ExprListAST>();
-
     token_t token = this->peekNextToken();
+
+    std::shared_ptr<ExprListAST> blockNode = 
+        std::make_shared<ExprListAST>(token.file, token.line, token.column);
+
+    
 
     if (token.type == CONST_KEYWORD) {
         this->parseConstDeclarations(blockNode);
@@ -128,7 +131,10 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
         identifier.lexeme, 
         this->currentScope(), 
         type_info.variable.type, 
-        type_info.variable.isArray
+        type_info.variable.isArray,
+        identifier.file,
+        identifier.line,
+        identifier.column
     );
 
     this->currentScope()->insert(identifier.lexeme, type_info);
@@ -137,7 +143,10 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
         = std::make_shared<BinaryExprAST>(
             ASSIGNMENT, 
             variable, 
-            number
+            number,
+            identifier.file,
+            identifier.line,
+            identifier.column
         );
     parent->addChild(binAST);
     
@@ -176,7 +185,10 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
         identifier.lexeme,
         this->currentScope(),
         type_info.variable.type,
-        type_info.variable.isArray
+        type_info.variable.isArray,
+        identifier.file,
+        identifier.line,
+        identifier.column
     );
 
     this->currentScope()->insert(identifier.lexeme, type_info);
@@ -184,7 +196,10 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     EASTPtr binAST 
         = std::make_shared<BinaryExprAST>(
             ASSIGNMENT, variable, 
-            number
+            number,
+            identifier.file,
+            identifier.line,
+            identifier.column
         );
     parent->addChild(binAST);
 }
@@ -213,13 +228,20 @@ void Parser::parseVarDeclarations(std::shared_ptr<ExprListAST> parent) {
         identifier.lexeme, 
         this->currentScope(),
         type_info.variable.type,
-        type_info.variable.isArray
+        type_info.variable.isArray,
+        identifier.file,
+        identifier.line,
+        identifier.column
     );
 
     this->currentScope()->insert(identifier.lexeme, type_info);
 
     EASTPtr declaration = std::make_shared<UnaryExprAST>(
-        ASSIGNMENT, variable
+        ASSIGNMENT, 
+        variable, 
+        identifier.file, 
+        identifier.line, 
+        identifier.column
     );
     parent->addChild(declaration);
 
@@ -256,13 +278,20 @@ void Parser::parseVarDeclarationList(std::shared_ptr<ExprListAST> parent) {
         identifier.lexeme, 
         this->currentScope(),
         type_info.variable.type,
-        type_info.variable.isArray
+        type_info.variable.isArray,
+        identifier.file,
+        identifier.line,
+        identifier.column
     );
 
     this->currentScope()->insert(identifier.lexeme, type_info);
 
     EASTPtr declaration = std::make_shared<UnaryExprAST>(
-        ASSIGNMENT, variable
+        ASSIGNMENT, 
+        variable,
+        identifier.file,
+        identifier.line,
+        identifier.column
     );
     parent->addChild(declaration);
 }
@@ -288,7 +317,7 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
     std::shared_ptr<VariableAST> returnId = nullptr;
     peek = this->peekNextToken();
     // First set of type.
-    if (peek.type == INT_NUMBER_LITERAL || peek.type == FLOAT_NUMBER_LITERAL) {
+    if (peek.type == INT_TYPE_KEYWORD || peek.type == FLOAT_TYPE_KEYWORD) {
         type_t type;
         bool is_array;
         unsigned int array_size;
@@ -312,7 +341,10 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
         returnId = std::make_shared<VariableAST>(
             ident.lexeme, this->currentScope(), 
             type_info.variable.type, 
-            type_info.variable.isArray
+            type_info.variable.isArray,
+            ident.file,
+            ident.line,
+            ident.column
         );
     }
 
@@ -356,7 +388,8 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
     this->currentScope()->insert(prototype->name, func_info);
 
     EASTPtr procedure = std::make_shared<ProcedureAST>(
-        prototype, blockBody, this->currentScope()
+        prototype, blockBody, this->currentScope(),
+        procedure_id.file, procedure_id.line, procedure_id.column
     );
 
     parent->addChild(procedure);
@@ -380,6 +413,7 @@ std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
     type_info.variable.isAssigned = true;
     type_info.variable.isArray = is_array;
     type_info.variable.arraySize = array_size;
+    type_info.variable.type = type;
     type_info.token = identifier;
 
     arguments.push_back(
@@ -387,7 +421,10 @@ std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
             identifier.lexeme, 
             this->currentScope(),
             type_info.variable.type,
-            type_info.variable.isArray
+            type_info.variable.isArray,
+            identifier.file,
+            identifier.line,
+            identifier.column
         )
     );
 
@@ -411,7 +448,10 @@ std::vector<std::shared_ptr<VariableAST>> Parser::parseArguments() {
                 identifier.lexeme, 
                 this->currentScope(),
                 type_info.variable.type,
-                type_info.variable.isArray
+                type_info.variable.isArray,
+                identifier.file,
+                identifier.line,
+                identifier.column
             )
         );
 
@@ -434,7 +474,10 @@ AST Parser::parseStatement() {
             EASTPtr binExpr = std::make_shared<BinaryExprAST>(
                 ASSIGNMENT, 
                 lhs,
-                rhs
+                rhs,
+                token.file,
+                token.line,
+                token.column
             );
 
             return binExpr;
@@ -449,11 +492,16 @@ AST Parser::parseStatement() {
             if (this->peekNextToken().type == LEFT_PAREN) {
                 this->tryMatchTerminal(this->getNextToken(), LEFT_PAREN);
                 arguments.push_back(this->parseExpression());
+                while (this->peekNextToken().type == COMMA) {
+                    this->tryMatchTerminal(this->getNextToken(), COMMA);
+                    arguments.push_back(this->parseExpression());
+                }
                 this->tryMatchTerminal(this->getNextToken(), RIGHT_PAREN);
             }
 
             EASTPtr call = std::make_shared<CallExprAST>(
-                procedureID.lexeme, arguments, this->currentScope()
+                procedureID.lexeme, arguments, this->currentScope(),
+                procedureID.file, procedureID.line, procedureID.column
             );
 
             return call;
@@ -463,31 +511,17 @@ AST Parser::parseStatement() {
             EASTPtr toWrite = this->parseExpression();
 
             EASTPtr write = std::make_shared<UnaryExprAST>(
-                WRITE, toWrite
+                WRITE, toWrite, token.file, token.line, token.column
             );
 
             return write;
         }
         case READ_OP: {
             this->tryMatchTerminal(this->getNextToken(), READ_OP);
-            token_t identifier = this->getNextToken();
-            this->tryMatchTerminal(identifier, IDENTIFIER);
-
-            st_entry_t typeInfo;
-            unsigned int level;
-            this->currentScope()->lookup(token.lexeme, &level, &typeInfo);
-
-            ASSERT(typeInfo.entry_type == ST_VARIABLE);
-
-            EASTPtr toReadTo = std::make_shared<VariableAST>(
-                identifier.lexeme, 
-                this->currentScope(),
-                typeInfo.variable.type,
-                typeInfo.variable.isArray
-            );
+            EASTPtr toReadTo = this->parseVariable();
 
             EASTPtr read = std::make_shared<UnaryExprAST>(
-                READ, toReadTo
+                READ, toReadTo, token.file, token.line, token.column
             );
 
             return read;
@@ -495,10 +529,13 @@ AST Parser::parseStatement() {
         case BEGIN_KEYWORD: {
             this->enterNewScope();
 
-            this->tryMatchTerminal(this->getNextToken(), BEGIN_KEYWORD);
+            token_t begin = this->getNextToken();
+            this->tryMatchTerminal(begin, BEGIN_KEYWORD);
 
             std::shared_ptr<ExprListAST> exprList 
-                = std::make_shared<ExprListAST>();
+                = std::make_shared<ExprListAST>(
+                    begin.file, begin.line, begin.column
+                );
 
             EASTPtr statement = this->parseStatement();
             exprList->addChild(statement);
@@ -536,7 +573,7 @@ AST Parser::parseStatement() {
             }
 
             return std::make_shared<IfStatementAST>(
-                condition, body
+                condition, body, if_token.file, if_token.line, if_token.column
             );
         }
         case WHILE_KEYWORD: {
@@ -558,7 +595,11 @@ AST Parser::parseStatement() {
             }
 
             return std::make_shared<WhileStatementAST>(
-                condition, body
+                condition, 
+                body, 
+                while_token.file, 
+                while_token.line, 
+                while_token.column
             );
         }
         default:
@@ -575,7 +616,7 @@ AST Parser::parseCondition() {
             this->tryMatchTerminal(this->getNextToken(), ODD_OP);
             EASTPtr operand = this->parseExpression();
             return std::make_shared<UnaryExprAST>(
-                ODD, operand
+                ODD, operand, token.file, token.line, token.column
             );
         }
         default: {
@@ -585,7 +626,7 @@ AST Parser::parseCondition() {
             operation_t op = cmpOpMap.at(cmpOp.lexeme);
             EASTPtr rhs = this->parseExpression();
             return std::make_shared<BinaryExprAST>(
-                op, lhs, rhs
+                op, lhs, rhs, token.file, token.line, token.column
             );
         }
     }
@@ -606,7 +647,7 @@ AST Parser::parseExpression() {
 
     if (is_unary) {
         lhs = std::make_shared<UnaryExprAST>(
-            unary_op, lhs
+            unary_op, lhs, unaryOp.file, unaryOp.line, unaryOp.column
         );
     }
 
@@ -615,7 +656,7 @@ AST Parser::parseExpression() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseExpressionTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs
+            op, lhs, rhs, next.file, next.line, next.column
         );
     }
 
@@ -631,7 +672,7 @@ AST Parser::parseExpressionTail() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseExpressionTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs
+            op, lhs, rhs, next.file, next.line, next.column
         );
     }
 
@@ -646,7 +687,7 @@ AST Parser::parseTerm() {
         operation_t op = cmpOpMap.at(next.lexeme);        
         EASTPtr rhs = this->parseTermTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs
+            op, lhs, rhs, next.file, next.line, next.column
         );
     }
 
@@ -661,7 +702,7 @@ AST Parser::parseTermTail() {
         operation_t op = cmpOpMap.at(next.lexeme);
         EASTPtr rhs = this->parseTermTail();
         return std::make_shared<BinaryExprAST>(
-            op, lhs, rhs
+            op, lhs, rhs, next.file, next.line, next.column
         );
     }
 
@@ -716,27 +757,29 @@ AST Parser::parseNumber() {
     switch (next.type) {
         case INT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, INT_NUMBER_LITERAL);
-            uint64_t value = atoi(next.lexeme.c_str());
             typeInfo.literal.type = INT;
-            memcpy(typeInfo.literal.value, &value, LITERAL_BYTE_LEN);
+            typeInfo.literal.value.int_value = atoi(next.lexeme.c_str());
             number = std::make_shared<NumberAST>(
                 next.lexeme,
-                (void *)&value,
                 this->currentScope(),
-                INT
+                INT,
+                next.file,
+                next.line,
+                next.column
             );
             break;
         }
         case FLOAT_NUMBER_LITERAL: {
             this->tryMatchTerminal(next, FLOAT_NUMBER_LITERAL);
-            double value = atof(next.lexeme.c_str());
             typeInfo.literal.type = FLOAT;
-            memcpy(typeInfo.literal.value, &value, LITERAL_BYTE_LEN);
+            typeInfo.literal.value.float_value = atof(next.lexeme.c_str());
             number = std::make_shared<NumberAST>(
                 next.lexeme,
-                (void *)&value, 
                 this->currentScope(),
-                FLOAT
+                FLOAT,
+                next.file,
+                next.line,
+                next.column
             );
             break;
         }
@@ -753,7 +796,10 @@ AST Parser::parseNumber() {
     if (is_unary) {
         return std::make_shared<UnaryExprAST>(
             unary_op, 
-            number
+            number,
+            next.file,
+            next.line,
+            next.column
         );
     }
 
@@ -763,21 +809,45 @@ AST Parser::parseNumber() {
 AST Parser::parseVariable() {
     token_t ident = this->getNextToken(); 
     this->tryMatchTerminal(ident, IDENTIFIER);
+
+    // If the variable is already declared, the type will be located in the 
+    // symbol table. Otherwise, the type checker will resolve the type later.
+    type_t type = UNKNOWN;
+    unsigned int level;
+    st_entry_t entry;
+
+    if (this->currentScope()->lookup(ident.lexeme, &level, &entry)) {
+        ASSERT(entry.entry_type == ST_VARIABLE);
+        type = entry.variable.type;
+    }
+
     std::shared_ptr<VariableAST> var = std::make_unique<VariableAST>(
-        ident.lexeme, this->currentScope(), UNKNOWN
+        ident.lexeme, 
+        this->currentScope(), 
+        type,
+        false,
+        ident.file,
+        ident.line,
+        ident.column
     );
 
     if (this->peekNextToken().type == LEFT_SQUARE_BRACKET) {
         this->tryMatchTerminal(this->getNextToken(), LEFT_SQUARE_BRACKET);
         EASTPtr result = this->parseExpression();
         this->tryMatchTerminal(this->getNextToken(), RIGHT_SQUARE_BRACKET);
-        return std::make_unique<ArrayIndexAST>(var, result, UNKNOWN);
+        return std::make_unique<ArrayIndexAST>(
+            var, result, type, ident.file, ident.line, ident.column
+        );
     }
 
     return var;
 }
 
 void Parser::parseType(type_t *type, bool *is_array, unsigned int *array_size) {
+    *type = UNKNOWN;
+    *is_array = false;
+    *array_size = 0;
+
     const token_t next = this->getNextToken();
     switch (next.type) {
         case INT_TYPE_KEYWORD:
@@ -797,12 +867,52 @@ void Parser::parseType(type_t *type, bool *is_array, unsigned int *array_size) {
 
     const token_t peek = this->peekNextToken();
     if (peek.type == LEFT_SQUARE_BRACKET) {
+
         this->tryMatchTerminal(this->getNextToken(), LEFT_SQUARE_BRACKET);
-        const token_t int_literal = this->getNextToken();
-        this->tryMatchTerminal(int_literal, INT_NUMBER_LITERAL);
+
+        const token_t sizeToken = this->getNextToken();
+        switch (sizeToken.type) {
+            case INT_NUMBER_LITERAL: {
+                this->tryMatchTerminal(sizeToken, INT_NUMBER_LITERAL);
+                *array_size = atoi(sizeToken.lexeme.c_str());
+                break;
+            }
+            case IDENTIFIER: {
+                this->tryMatchTerminal(sizeToken, IDENTIFIER);
+
+                // Constants must be declared for use and have values in
+                // the symbol table at compile time.
+
+                unsigned int level;
+                st_entry_t entry;
+                this->currentScope()->lookup(sizeToken.lexeme, &level, &entry);
+
+                if (
+                    entry.entry_type != ST_VARIABLE || 
+                    entry.variable.isConstant == false ||
+                    entry.variable.type != INT
+                ) {
+                    ERROR_LOG(
+                        "expected array size to be an integer constant"
+                        " in %s at line %d column %d",
+                        sizeToken.file.c_str(),
+                        sizeToken.line,
+                        sizeToken.column
+                    );
+                    exit(EXIT_FAILURE);
+                }
+
+                *array_size = entry.variable.value.int_value;
+
+                break;
+            }
+            default:
+                raiseMismatchError(sizeToken, {INT_NUMBER_LITERAL, IDENTIFIER});
+                break;
+        }
+
         this->tryMatchTerminal(this->getNextToken(), RIGHT_SQUARE_BRACKET);
         *is_array = true;
-        *array_size = atoi(int_literal.lexeme.c_str());
     }
 }
 

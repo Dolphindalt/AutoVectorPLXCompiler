@@ -10,15 +10,15 @@ void typeMismatchErrorProcParam(
     const type_t type2
 );
 
-void typeMismatchError(const type_t type1, const type_t type2);
+void typeMismatchError(EASTPtr refn, const type_t type1, const type_t type2);
 
-void unknownProcedureError(const std::string &name);
+void unknownProcedureError(ExprAST *refn, const std::string &name);
 
 void assignmentToVoidError(const type_t type);
 
-void undefinedVariable(const std::string &name);
+void undefinedVariable(ExprAST *refn, const std::string &name);
 
-void conditionalExpectedType(const type_t actual);
+void conditionalExpectedType(EASTPtr refn, const type_t actual);
 
 void arrayIndexTypeError(const type_t actual);
 
@@ -65,7 +65,9 @@ std::optional<std::string> ExprAST::generateCode(
         return std::nullopt;
     };
 
-void ExprListAST::typeChecker() {}
+void ExprListAST::typeChecker() {
+    this->type = NO_TYPE;
+}
 
 void NumberAST::typeChecker() {
     #ifdef ASSERTIONS_ENABLED
@@ -73,6 +75,8 @@ void NumberAST::typeChecker() {
         unsigned int level;
         this->symTable->lookup(this->name, &level, &sym_ent);
         ASSERT(sym_ent.entry_type == ST_LITERAL);
+        ASSERT(sym_ent.literal.type != UNKNOWN);
+        ASSERT(sym_ent.literal.type != NO_TYPE);
     #endif
 }
 
@@ -91,7 +95,7 @@ void VariableAST::typeChecker() {
             ||
             (!(sym_ent.entry_type == ST_VARIABLE))
         ) {
-            undefinedVariable(this->name);
+            undefinedVariable(this, this->name);
         }
         this->type = sym_ent.variable.type;
 }
@@ -118,7 +122,7 @@ void BinaryExprAST::typeChecker() {
     }
 
     if (this->lhs->type != this->rhs->type) {
-        typeMismatchError(this->lhs->type, this->rhs->type);
+        typeMismatchError(this->lhs, this->lhs->type, this->rhs->type);
     }
     this->type = this->lhs->type;
 }
@@ -161,7 +165,7 @@ void CallExprAST::typeChecker() {
         ||
         (!(procedureInfo.entry_type == ST_FUNCTION))
     ) {
-        unknownProcedureError(this->callee);
+        unknownProcedureError(this, this->callee);
     }
 
     this->type = procedureInfo.procedure.returnType;
@@ -179,7 +183,7 @@ std::optional<std::string> CallExprAST::generateCode(
         ||
         (func_ent.entry_type != ST_FUNCTION)
     ) {
-        unknownProcedureError(this->callee);
+        unknownProcedureError(this, this->callee);
     }
 
     if (func_ent.procedure.argumentsLength != this->arguments.size()) {
@@ -242,7 +246,7 @@ std::optional<std::string> ProcedureAST::generateCode(
 
 void IfStatementAST::typeChecker() {
     if (this->condition->type != INT) {
-        conditionalExpectedType(this->condition->type);
+        conditionalExpectedType(this->condition, this->condition->type);
     }
     this->type = NO_TYPE;
 }
@@ -270,7 +274,7 @@ std::optional<std::string> IfStatementAST::generateCode(
 
 void WhileStatementAST::typeChecker() {
     if (this->condition->type != INT) {
-        conditionalExpectedType(this->condition->type);
+        conditionalExpectedType(this->condition, this->condition->type);
     }
     this->type = NO_TYPE;
 }
@@ -302,7 +306,7 @@ std::optional<std::string> WhileStatementAST::generateCode(
 
 void ArrayIndexAST::typeChecker() {
     if (this->index->type != INT) {
-        conditionalExpectedType(this->index->type);
+        conditionalExpectedType(this->index, this->index->type);
     }
     this->type = this->array->type;
 }
@@ -336,19 +340,27 @@ void typeMismatchErrorProcParam(
     exit(EXIT_FAILURE);
 }
 
-void typeMismatchError(const type_t type1, const type_t type2) {
+void typeMismatchError(EASTPtr refn, const type_t type1, const type_t type2) {
     ERROR_LOG(
-            "type mismatch error: %s and %s",
+            "type mismatch error: %s and %s"
+            " in %s at line %d column %d",
             typeToString(type1).c_str(),
-            typeToString(type2).c_str()
+            typeToString(type2).c_str(),
+            refn->getFile().c_str(),
+            refn->getLine(),
+            refn->getColumn()
     );
     exit(EXIT_FAILURE);
 }
 
-void unknownProcedureError(const std::string &name) {
+void unknownProcedureError(ExprAST *refn, const std::string &name) {
     ERROR_LOG(
-        "attempted to call undeclared procedure with name %s",
-        name.c_str()
+        "attempted to call undeclared procedure with name %s"
+        " in %s at line %d column %d",
+        name.c_str(),
+        refn->getFile().c_str(),
+        refn->getLine(),
+        refn->getColumn()
     );
     exit(EXIT_FAILURE);
 }
@@ -361,18 +373,26 @@ void assignmentToVoidError(const type_t type) {
     exit(EXIT_FAILURE);
 }
 
-void undefinedVariable(const std::string &name) {
+void undefinedVariable(ExprAST *refn, const std::string &name) {
     ERROR_LOG(
-        "use of undefined variable %s",
-        name.c_str()
+        "use of undefined variable %s"
+        " in %s at line %d column %d",
+        name.c_str(),
+        refn->getFile().c_str(),
+        refn->getLine(),
+        refn->getColumn()
     );
     exit(EXIT_FAILURE);
 }
 
-void conditionalExpectedType(const type_t actual) {
+void conditionalExpectedType(EASTPtr refn, const type_t actual) {
     ERROR_LOG(
-        "conditional must result in type int, but got %s",
-        typeToString(actual).c_str()
+        "conditional must result in type int, but got %s"
+        " in %s at line %d column %d",
+        typeToString(actual).c_str(),
+        refn->getFile().c_str(),
+        refn->getLine(),
+        refn->getColumn()
     );
     exit(EXIT_FAILURE);
 }

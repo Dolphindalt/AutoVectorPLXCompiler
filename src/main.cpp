@@ -79,7 +79,6 @@ int main(int argc, char *argv[]) {
     ast = nullptr;
 
     Optimizer optimizer(tacCode);
-    printf("%s", optimizer.to_string().c_str());
 
     return EXIT_SUCCESS;
 }

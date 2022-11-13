@@ -1,0 +1,29 @@
+const int cap = 100;
+var int[cap] a, int[cap] b;
+
+procedure init_arr(int[cap] v);
+var int i;
+begin
+    i := 0;
+    while i < cap do
+    begin
+        ?v[i];
+        i := i + 1
+    end
+end;
+
+procedure mult_val(int[cap] v, int c);
+var int i;
+begin
+    i := 0;
+    while i < cap do
+    begin
+        a[i] := v[i] + c * i;
+        i := i + 1
+    end
+end;
+
+begin
+    call init_arr(b);
+    call mult_val(b, 10)
+end.

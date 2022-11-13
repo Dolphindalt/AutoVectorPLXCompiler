@@ -1,0 +1,30 @@
+var int[100] arr;
+
+procedure populateArray(int[100] arr);
+var int i;
+begin
+    i := 0;
+    while i < 100 do
+    begin
+        arr[i] := i;
+        i := i + 1
+    end
+end;
+
+procedure summation(int[100] arr) int sum;
+var int i;
+begin
+    sum := 0;
+    i := 0;
+    while i < 100 do
+    begin
+        sum := sum + arr[i];
+        i := i + 1
+    end
+end;
+
+begin
+    call populateArray(arr);
+    call summation(arr)
+end
+.
