@@ -45,27 +45,24 @@ void Reach::worklistReaching() {
             bb->computeGenAndKillSets();
             changed.insert(bb);
             // Initialize out[n].
-            if (bb != this->cfg->getEntryBlock()) {
-                this->out.insert(std::make_pair(bb, std::set<TID>()));
-            }
+            this->out.insert(std::make_pair(bb, bb->getGenSet()));
+            // Init in[n] to be empty set.
+            this->in.insert(std::make_pair(bb, std::set<TID>()));
         }
     );
 
     while (!changed.empty()) {
         // Chose a node.
-        BBP n = *changed.begin();
+        BBP n = *changed.rbegin();
         // Remove it from the change set.
         changed.erase(n);
-        // Init in[n] to be empty set.
-        in.insert(std::make_pair(n, std::set<TID>()));
         // Calculate in[n] fom predecessors' out[p].
         for (
             auto p = n->getPredecessors().begin(); 
             p != n->getPredecessors().end(); 
             p++
         ) {
-            if (out.count(*p) != 0)
-                in[n].merge(out.at(*p));
+            in[n].merge(out.at(*p));
         }
         // Save the old out[n].
         std::set<TID> oldOut = std::set<TID>(out[n]);

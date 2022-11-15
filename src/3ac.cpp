@@ -41,7 +41,8 @@ bool tac_line_t::has_result(const tac_line_t &line) {
 }
 
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
-    std::string result = tacOpToStringMap.at(tac.operation);
+    std::string result = std::to_string(tac.bid) + 
+        ": " + tacOpToStringMap.at(tac.operation);
     if (tac.result != "") {
         result += " " + tac.result;
     }
@@ -95,13 +96,9 @@ tac_line_t TACGenerator::makeQuad(
             break;
         case TAC_READ:
             line.argument1 = address_a;
-            // Return what was read.
-            line.result = address_a;
             break;
         case TAC_WRITE:
             line.argument1 = address_a;
-            // Return what was written.
-            line.result = address_a;
             break;
         case TAC_LABEL:
             // Check if existing label is provided; generate if not.
@@ -136,9 +133,10 @@ tac_line_t TACGenerator::makeQuad(
             line.argument1 = address_a;
             // Is the operation a binary assignment in the form a = b?
             if (operation == TAC_ASSIGN) {
-                // If so, address b stores the result.
+                // If so, address b is the operand and a is the result.
                 // a = b
-                line.result = address_b;
+                line.result = address_a;
+                line.argument1 = address_b;
             } else {
                 // Otherwise, result stores the result of the binary operation.
                 // tn = a + b

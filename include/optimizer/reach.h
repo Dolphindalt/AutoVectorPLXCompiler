@@ -17,7 +17,9 @@ public:
 private:
     void worklistReaching();
 
+    // All varibles that are available when coming out of a block.
     std::map<BBP, std::set<TID>> out;
+    // All variables that are available when coming into a block.
     std::map<BBP, std::set<TID>> in;
     CFG *cfg;
 };

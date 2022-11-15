@@ -82,6 +82,7 @@ std::set<TID> BasicBlock::getKillSet() const {
 }
 
 void BasicBlock::computeGenAndKillSets() {
+    this->killed = this->varDefinitions;
     for (
         auto t = this->getInstructions().begin();
         t != this->getInstructions().end();
@@ -90,7 +91,6 @@ void BasicBlock::computeGenAndKillSets() {
         const tac_line_t instruction = *t;
         if (tac_line_t::has_result(instruction)) {
             this->generated.insert(instruction.bid);
-            this->killed = this->varDefinitions;
             this->killed.erase(instruction.bid);
         }
     }
