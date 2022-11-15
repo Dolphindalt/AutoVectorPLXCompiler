@@ -2,7 +2,9 @@
 
 #include <logging.h>
 
-bool tac_line::transfers_control(const tac_line &line) {
+unsigned int tac_line_t::bid_gen = 0;
+
+bool tac_line_t::transfers_control(const tac_line_t &line) {
     switch (line.operation) {
         case TAC_UNCOND_JMP:
         case TAC_JMP_E:
@@ -17,6 +19,25 @@ bool tac_line::transfers_control(const tac_line &line) {
             break;
     }
     return false;
+}
+
+bool tac_line_t::is_comparision(const tac_line_t &line) {
+    switch (line.operation) {
+        case TAC_LESS_THAN:
+        case TAC_LE_THAN:
+        case TAC_GREATER_THAN:
+        case TAC_GE_THAN:
+        case TAC_NOT_EQUALS:
+        case TAC_EQUALS:
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
+
+bool tac_line_t::has_result(const tac_line_t &line) {
+    return line.result != "";
 }
 
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
@@ -55,9 +76,13 @@ tac_line_t TACGenerator::makeQuad(
             break;
         case TAC_ENTER_PROC:
             // Function prologue marker.
+            // Name of function provided.
+            line.argument1 = address_a;
             break;
         case TAC_EXIT_PROC:
             // Function epilogue marker.
+            // Name of function provided.
+            line.argument1 = address_a;
             break;
         // Unary operations.
         case TAC_NEGATE:
@@ -70,9 +95,13 @@ tac_line_t TACGenerator::makeQuad(
             break;
         case TAC_READ:
             line.argument1 = address_a;
+            // Return what was read.
+            line.result = address_a;
             break;
         case TAC_WRITE:
             line.argument1 = address_a;
+            // Return what was written.
+            line.result = address_a;
             break;
         case TAC_LABEL:
             // Check if existing label is provided; generate if not.

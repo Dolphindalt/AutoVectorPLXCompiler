@@ -19,6 +19,8 @@ public:
 
     void computeControlFlowInformation();
 
+    BlockSet &getBlockSet();
+
     std::string to_string();
 private:
     bool isInstructionLeader(

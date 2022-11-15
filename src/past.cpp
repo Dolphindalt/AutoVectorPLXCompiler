@@ -223,7 +223,7 @@ std::optional<std::string> ProcedureAST::generateCode(
     TACGenerator &generator,
     std::vector<tac_line_t> &generated
 ) {
-    generated.push_back(generator.makeQuad(TAC_ENTER_PROC));
+    generated.push_back(generator.makeQuad(TAC_ENTER_PROC, this->proto->name));
     tac_line_t functionLabel = generator.makeQuad(
         TAC_LABEL, 
         generator.customLabel(this->proto->name)
@@ -239,7 +239,7 @@ std::optional<std::string> ProcedureAST::generateCode(
         );
     }
 
-    generated.push_back(generator.makeQuad(TAC_EXIT_PROC));
+    generated.push_back(generator.makeQuad(TAC_EXIT_PROC, this->proto->name));
 
     return std::nullopt;
 }
@@ -288,6 +288,9 @@ std::optional<std::string> WhileStatementAST::generateCode(
 
     std::string cmp_result = 
         this->condition->generateCode(generator, generated).value();
+
+    tac_line_t returnToHeaderJump = 
+        generator.makeQuad(TAC_UNCOND_JMP, header.argument1);
     
     tac_line_t skipBodyLabel = generator.makeQuad(TAC_LABEL);
 
@@ -298,6 +301,7 @@ std::optional<std::string> WhileStatementAST::generateCode(
     generated.push_back(skipBodyJump);
 
     this->body->generateCode(generator, generated);
+    generated.push_back(returnToHeaderJump);
 
     generated.push_back(skipBodyLabel);
 

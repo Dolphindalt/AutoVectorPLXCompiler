@@ -12,6 +12,8 @@ using BBP = std::shared_ptr<BasicBlock>;
 
 class BasicBlock {
 public:
+    static std::set<TID> varDefinitions;
+
     BasicBlock();
     virtual ~BasicBlock();
 
@@ -19,12 +21,20 @@ public:
     void insertPredecessor(BBP block);
     void insertSuccessor(BBP block);
 
-    std::vector<tac_line_t> &getInstructions(); 
+    const std::vector<tac_line_t> &getInstructions(); 
+    const std::vector<BBP> &getSuccessors();
+    const std::vector<BBP> &getPredecessors();
 
     unsigned int getID() const;
     bool getHasProcedureCall() const;
     bool getHasEnterProcedure() const;
     bool getHasExitProcedure() const;
+    bool blockEndsWithUnconditionalJump() const;
+    std::set<TID> getGenSet() const;
+    std::set<TID> getKillSet() const;
+
+    void computeGenAndKillSets();
+
     std::string to_string() const;
 private:
     static unsigned int basicBlockIdGenerator;
@@ -35,8 +45,11 @@ private:
     bool hasExitProcedure;
 
     std::vector<tac_line_t> instructions;
-    std::set<BBP> successors;
-    std::set<BBP> predecessors;
+    std::vector<BBP> successors;
+    std::vector<BBP> predecessors;
+
+    std::set<TID> generated;
+    std::set<TID> killed;
 };
 
 #endif

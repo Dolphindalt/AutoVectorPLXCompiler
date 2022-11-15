@@ -1,0 +1,13 @@
+var int i, int cap;
+begin
+    cap := 1000;
+    i := 0;
+    while i < cap do
+    begin
+        if i / 2 = 0 then
+        begin
+            !i
+        end;
+        i := i + 1
+    end
+end.

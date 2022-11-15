@@ -78,14 +78,22 @@ static std::map<tac_op_t, std::string> tacOpToStringMap = {
     {TAC_ARRAY_INDEX, "TAC_ARRAY_INDEX"}
 };
 
+typedef unsigned int TID;
+
 typedef struct tac_line {
 public:
+    static unsigned int bid_gen;
     static bool transfers_control(const tac_line &line);
+    static bool is_comparision(const tac_line &line);
+    static bool has_result(const tac_line &line);
 
+    TID bid;
     tac_op_t operation;
     std::string argument1;
     std::string argument2;
     std::string result;
+public:
+    tac_line() { this->bid = bid_gen++; };
 } tac_line_t;
 
 class TACGenerator {

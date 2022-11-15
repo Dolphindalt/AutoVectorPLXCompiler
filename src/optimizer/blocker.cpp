@@ -97,13 +97,17 @@ void Blocker::computeControlFlowInformation() {
             savedPreviousBlock = previousBlock;
             previousBlock = *i;
         } else if (currentBlock->getHasExitProcedure()) {
-            previousBlock->insertSuccessor(currentBlock);
-            currentBlock->insertPredecessor(previousBlock);
+            if (!previousBlock->blockEndsWithUnconditionalJump()) {
+                previousBlock->insertSuccessor(currentBlock);
+                currentBlock->insertPredecessor(previousBlock);
+            }
             previousBlock = savedPreviousBlock;
             savedPreviousBlock = nullptr;
         } else {
-            previousBlock->insertSuccessor(currentBlock);
-            currentBlock->insertPredecessor(previousBlock);
+            if (!previousBlock->blockEndsWithUnconditionalJump()) {
+                previousBlock->insertSuccessor(currentBlock);
+                currentBlock->insertPredecessor(previousBlock);
+            }
             previousBlock = currentBlock;
         }
 
@@ -120,8 +124,8 @@ void Blocker::computeControlFlowInformation() {
                 tac_line_t::transfers_control(tac) && tac.operation != TAC_CALL
             ) {
                 BBP controlGoesTo = this->labelLocationInBlock.at(tac.argument1);
-                controlGoesTo->insertSuccessor(currentBlock);
-                currentBlock->insertPredecessor(controlGoesTo);
+                controlGoesTo->insertPredecessor(currentBlock);
+                currentBlock->insertSuccessor(controlGoesTo);
                 controlGoesTo = nullptr;
             }
         }
@@ -130,6 +134,10 @@ void Blocker::computeControlFlowInformation() {
 
     previousBlock = nullptr;
     savedPreviousBlock = nullptr;
+}
+
+BlockSet &Blocker::getBlockSet() {
+    return this->basicBlocks;
 }
 
 std::string Blocker::to_string() {
