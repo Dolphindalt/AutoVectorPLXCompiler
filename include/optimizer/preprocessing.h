@@ -8,7 +8,9 @@ class Preprocessor {
 public:
     Preprocessor(std::vector<tac_line_t> &instructions);
 private:
-    void preprocess(std::vector<tac_line_t> &instructions);
+    void preprocess();
+
+    void applyTwoInstructionRewrite();
 
     /**
      * Normally, this is implemented by converting the 3AC statements into 
@@ -18,8 +20,12 @@ private:
      * 
      * Also, the rule is hardcoded, because there won't be as many as with
      * rewrite rules for machine dependent optimizations.
+     * 
+     * @return True if the second instruction should be removed.
      */
-    void applyRedundantRewriteRule(std::vector<tac_line_t> &instructions);
+    bool applyRedundantRewriteRule(tac_line_t &i1, tac_line_t &i2);
+
+    std::vector<tac_line_t> &instructions;
 };
 
 #endif
