@@ -1,0 +1,14 @@
+var int i, int j, int cap;
+begin
+    cap := 1000;
+    i := 0;
+    while i < cap do
+    begin
+        while j < cap do
+        begin
+            j := j + 1
+        end;
+        i := i + 1
+    end;
+    i := i + 1
+end.

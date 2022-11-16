@@ -10,14 +10,21 @@ class BasicBlock;
 
 using BBP = std::shared_ptr<BasicBlock>;
 
+auto inline set_id_cmp = [](tac_line_t a, tac_line_t b) { 
+    return a.bid < b.bid; 
+};
+
+using TIDSet = std::set<tac_line_t, decltype(set_id_cmp)>;
+
 class BasicBlock {
 public:
-    static std::set<TID> varDefinitions;
+    static TIDSet varDefinitions;
 
     BasicBlock();
     virtual ~BasicBlock();
 
     void insertInstruction(const tac_line_t instruction);
+    void removeInstruction(const tac_line_t instruction);
     void insertPredecessor(BBP block);
     void insertSuccessor(BBP block);
 
@@ -30,8 +37,9 @@ public:
     bool getHasEnterProcedure() const;
     bool getHasExitProcedure() const;
     bool blockEndsWithUnconditionalJump() const;
-    std::set<TID> getGenSet() const;
-    std::set<TID> getKillSet() const;
+    TIDSet getGenSet() const;
+    TIDSet getKillSet() const;
+    bool isVariableConstantInBB(const std::string &varName) const;
 
     void computeGenAndKillSets();
 
@@ -48,8 +56,10 @@ private:
     std::vector<BBP> successors;
     std::vector<BBP> predecessors;
 
-    std::set<TID> generated;
-    std::set<TID> killed;
+    TIDSet generated;
+    TIDSet killed;
+
+    std::set<std::string> variableAssignments;
 };
 
 #endif

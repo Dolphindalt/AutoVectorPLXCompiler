@@ -40,6 +40,20 @@ bool tac_line_t::has_result(const tac_line_t &line) {
     return line.result != "";
 }
 
+bool tac_line_t::is_conditional_jump(const tac_line &line) {
+    switch (line.operation) {
+        case TAC_JMP_E ... TAC_JMP_ZERO:
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
+
+bool tac_line_t::is_procedure_call(const tac_line &line) {
+    return line.operation == TAC_CALL || line.operation == TAC_RETVAL;
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = std::to_string(tac.bid) + 
         ": " + tacOpToStringMap.at(tac.operation);

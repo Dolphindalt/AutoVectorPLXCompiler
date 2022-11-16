@@ -13,14 +13,17 @@ public:
     Reach();
     Reach(CFG *cfg);
 
+    std::set<std::string> getVariablesIntoBlock(const BBP bb) const;
+    std::set<std::string> getVariablesOutOfBlock(const BBP bb) const;
+
     std::string to_string() const;
 private:
     void worklistReaching();
 
     // All varibles that are available when coming out of a block.
-    std::map<BBP, std::set<TID>> out;
+    std::map<BBP, std::set<std::string>> out;
     // All variables that are available when coming into a block.
-    std::map<BBP, std::set<TID>> in;
+    std::map<BBP, std::set<std::string>> in;
     CFG *cfg;
 };
 

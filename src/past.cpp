@@ -104,7 +104,11 @@ std::optional<std::string> VariableAST::generateCode(
     TACGenerator &generator,
     std::vector<tac_line_t> &generated
 ) {
-    return this->name;
+    st_entry_t entry;
+    unsigned int level;
+    this->symTable->lookup(this->name, &level, &entry);
+    // Names shall be mangled.
+    return this->name + "$scope" + std::to_string(level);
 }
 
 void BinaryExprAST::typeChecker() {

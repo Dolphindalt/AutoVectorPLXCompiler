@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-std::set<TID> BasicBlock::varDefinitions;
+std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::varDefinitions;
 
 BasicBlock::BasicBlock() 
     : id(BasicBlock::basicBlockIdGenerator++), hasProcedureCall(false),
@@ -26,10 +26,19 @@ void BasicBlock::insertInstruction(const tac_line_t instruction) {
     }
 
     if (tac_line_t::has_result(instruction)) {
-        this->varDefinitions.insert(instruction.bid);
+        this->varDefinitions.insert(instruction);
+        this->variableAssignments.insert(instruction.result);
     }
 
     this->instructions.push_back(instruction);
+}
+
+void BasicBlock::removeInstruction(const tac_line_t instruction) {
+    this->generated.erase(instruction);
+
+    this->instructions.erase(std::remove(
+        this->instructions.begin(), this->instructions.end(), instruction
+    ), this->instructions.end());
 }
 
 void BasicBlock::insertPredecessor(BBP block) {
@@ -73,16 +82,21 @@ bool BasicBlock::blockEndsWithUnconditionalJump() const {
         this->instructions.back().operation == TAC_UNCOND_JMP;
 }
 
-std::set<TID> BasicBlock::getGenSet() const {
+std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::getGenSet() const {
     return this->generated;
 }
 
-std::set<TID> BasicBlock::getKillSet() const {
+std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::getKillSet() const {
     return this->killed;
 }
 
+bool BasicBlock::isVariableConstantInBB(const std::string &varName) const {
+    // Declared variables within the block are in the variable assignments.
+    return this->variableAssignments.count(varName) != 0;
+}
+
 void BasicBlock::computeGenAndKillSets() {
-    this->killed = this->varDefinitions;
+    this->killed = TIDSet(this->varDefinitions);
     for (
         auto t = this->getInstructions().begin();
         t != this->getInstructions().end();
@@ -90,8 +104,8 @@ void BasicBlock::computeGenAndKillSets() {
     ) {
         const tac_line_t instruction = *t;
         if (tac_line_t::has_result(instruction)) {
-            this->generated.insert(instruction.bid);
-            this->killed.erase(instruction.bid);
+            this->generated.insert(instruction);
+            this->killed.erase(instruction);
         }
     }
 }
