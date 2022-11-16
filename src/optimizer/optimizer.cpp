@@ -2,6 +2,6 @@
 
 #include <cstdio>
 
-Optimizer::Optimizer(const std::vector<tac_line_t> &instructions) 
-: blocker(Blocker(instructions)), graphs(this->blocker.getBlockSet()) {
-}
+Optimizer::Optimizer(std::vector<tac_line_t> &instructions) 
+: preprocessor(Preprocessor(instructions)), blocker(Blocker(instructions)), 
+    graphs(this->blocker.getBlockSet()) {}

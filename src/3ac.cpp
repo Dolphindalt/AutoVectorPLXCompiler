@@ -54,6 +54,16 @@ bool tac_line_t::is_procedure_call(const tac_line &line) {
     return line.operation == TAC_CALL || line.operation == TAC_RETVAL;
 }
 
+bool tac_line_t::is_binary_operation(const tac_line &line) {
+    switch (line.operation) {
+        case TAC_ASSIGN ... TAC_ARRAY_INDEX:
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = std::to_string(tac.bid) + 
         ": " + tacOpToStringMap.at(tac.operation);

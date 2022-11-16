@@ -10,6 +10,7 @@ bool LoopNest::canVectorize() const {
             return false;
         }
     }
+    return true;
 }
 
 std::vector<NaturalLoop> LoopNest::getNest() {

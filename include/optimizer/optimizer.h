@@ -6,11 +6,13 @@
 
 #include <optimizer/blocker.h>
 #include <optimizer/graphs.h>
+#include <optimizer/preprocessing.h>
 
 class Optimizer {
 public:
-    Optimizer(const std::vector<tac_line_t> &instructions);
+    Optimizer(std::vector<tac_line_t> &instructions);
 private:
+    Preprocessor preprocessor;
     Blocker blocker;
     Graphs graphs;
 };

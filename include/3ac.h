@@ -88,6 +88,7 @@ public:
     static bool has_result(const tac_line &line);
     static bool is_conditional_jump(const tac_line &line);
     static bool is_procedure_call(const tac_line &line);
+    static bool is_binary_operation(const tac_line &line);
 
     inline bool operator==(tac_line const &rhs) const {
         return this->bid == rhs.bid;
