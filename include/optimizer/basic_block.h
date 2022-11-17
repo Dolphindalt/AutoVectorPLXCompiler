@@ -18,7 +18,7 @@ using TIDSet = std::set<tac_line_t, decltype(set_id_cmp)>;
 
 class BasicBlock {
 public:
-    static TIDSet varDefinitions;
+    static TIDSet globalVarDefinitions;
 
     BasicBlock();
     virtual ~BasicBlock();
@@ -51,6 +51,7 @@ private:
     bool hasProcedureCall;
     bool hasEnterProcedure;
     bool hasExitProcedure;
+    TIDSet localVariableDefinitions;
 
     std::vector<tac_line_t> instructions;
     std::vector<BBP> successors;

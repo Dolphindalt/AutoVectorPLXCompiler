@@ -2,11 +2,12 @@
 
 #include <algorithm>
 
-std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::varDefinitions;
+std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::globalVarDefinitions;
 
 BasicBlock::BasicBlock() 
     : id(BasicBlock::basicBlockIdGenerator++), hasProcedureCall(false),
-    hasEnterProcedure(false), hasExitProcedure(false) {}
+    hasEnterProcedure(false), hasExitProcedure(false), 
+    localVariableDefinitions(BasicBlock::globalVarDefinitions) {}
 
 BasicBlock::~BasicBlock() {}
 
@@ -26,7 +27,8 @@ void BasicBlock::insertInstruction(const tac_line_t instruction) {
     }
 
     if (tac_line_t::has_result(instruction)) {
-        this->varDefinitions.insert(instruction);
+        this->globalVarDefinitions.insert(instruction);
+        this->localVariableDefinitions.insert(instruction);
         this->variableAssignments.insert(instruction.result);
     }
 
@@ -96,7 +98,7 @@ bool BasicBlock::isVariableConstantInBB(const std::string &varName) const {
 }
 
 void BasicBlock::computeGenAndKillSets() {
-    this->killed = TIDSet(this->varDefinitions);
+    this->killed = TIDSet(this->localVariableDefinitions);
     for (
         auto t = this->getInstructions().begin();
         t != this->getInstructions().end();

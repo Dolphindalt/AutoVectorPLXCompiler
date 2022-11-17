@@ -81,6 +81,7 @@ void Reach::worklistReaching() {
         // Save the old out[n].
         TIDSet oldOut = TIDSet(out[n]);
         // Update out[n] using transfer function f_n().
+        // out[n] = gen[n] U (in[n] - kill[n])
         TIDSet result;
         auto gen = n->getGenSet();
         auto kill = n->getKillSet();
