@@ -1,6 +1,6 @@
-var int i, int cap;
+const int cap = 1000;
+var int i;
 begin
-    cap := 1000;
     i := 0;
     while i < cap do
     begin

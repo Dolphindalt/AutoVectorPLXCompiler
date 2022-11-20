@@ -12,10 +12,11 @@
 #include <past.h>
 #include <3ac.h>
 #include <optimizer/optimizer.h>
+#include <codegen/asm_generator.h>
 
-const char *argp_program_version = "CPSC 323 Student Compiler";
-const char *argp_program_bug_address = "dcaron@fullerton.edu";
-static char doc[] = "A compiler program for students.";
+const char *argp_program_version = "Dalton\'s Toy Compiler";
+const char *argp_program_bug_address = "dpcaron@csu.fullerton.edu";
+static char doc[] = "A compiler program for demonstrating an optimizer.";
 static char args_doc[] = "<source code file>";
 static struct argp_option options[] = {
     { 0 }
@@ -79,6 +80,9 @@ int main(int argc, char *argv[]) {
     ast = nullptr;
 
     Optimizer optimizer(tacCode);
+
+    AssemblyGenerator generator;
+    generator.generateAssembly(tacCode);
 
     return EXIT_SUCCESS;
 }
