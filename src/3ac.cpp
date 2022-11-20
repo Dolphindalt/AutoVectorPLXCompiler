@@ -84,11 +84,13 @@ TACGenerator::TACGenerator() : tempCounter(0), labelCounter(0) {}
 TACGenerator::~TACGenerator() {}
 
 tac_line_t TACGenerator::makeQuad(
+    std::shared_ptr<SymbolTable> table,
     const tac_op_t operation,
     const std::string &address_a,
     const std::string &address_b
 ) {
     tac_line_t line;
+    line.table = table;
     line.operation = operation;
     line.argument1 = "";
     line.argument2 = "";

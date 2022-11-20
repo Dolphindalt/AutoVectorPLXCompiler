@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <symbol_table.h>
+#include <memory>
 
 typedef enum tac_op {
     // Nullary instructions.
@@ -103,6 +105,7 @@ public:
     std::string argument1;
     std::string argument2;
     std::string result;
+    std::shared_ptr<SymbolTable> table;
 public:
     tac_line() { this->bid = bid_gen++; };
 } tac_line_t;
@@ -115,6 +118,7 @@ public:
     virtual ~TACGenerator();
 
     tac_line_t makeQuad(
+        std::shared_ptr<SymbolTable> table,
         const tac_op_t operation,
         const std::string &address_a="",
         const std::string &address_b=""

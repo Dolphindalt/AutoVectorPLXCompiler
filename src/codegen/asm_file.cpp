@@ -41,12 +41,12 @@ const void AsmFile::to_file(const char *fileName) const {
 
     fprintf(file, ".data\n");
     for (const std::string &line : this->dataSectionLines) {
-        fprintf(file, "%s\n", line);
+        fprintf(file, "%s\n", line.c_str());
     }
 
     fprintf(file, ".text\n");
     for (const std::string &line : this->textSectionLines) {
-        fprintf(file, "%s\n", line);
+        fprintf(file, "%s\n", line.c_str());
     }
 
     fclose(file);

@@ -107,8 +107,7 @@ std::optional<std::string> VariableAST::generateCode(
     st_entry_t entry;
     unsigned int level;
     this->symTable->lookup(this->name, &level, &entry);
-    // Names shall be mangled.
-    return this->name + "$scope" + std::to_string(level);
+    return this->name;
 }
 
 void BinaryExprAST::typeChecker() {
@@ -138,7 +137,7 @@ std::optional<std::string> BinaryExprAST::generateCode(
     std::string arg1 = this->lhs->generateCode(generator, generated).value();
     std::string arg2 = this->rhs->generateCode(generator, generated).value();
     tac_line_t code = generator.makeQuad(
-        treeTo3acOpMap.at(this->operation), arg1, arg2
+        this->symTable, treeTo3acOpMap.at(this->operation), arg1, arg2
     );
     generated.push_back(code);
     return code.result;
@@ -155,7 +154,7 @@ std::optional<std::string> UnaryExprAST::generateCode(
     std::string arg1 = this->operand->generateCode(generator, generated)
         .value();
     tac_line_t code = generator.makeQuad(
-        treeTo3acOpMap.at(this->operation), arg1
+        this->symTable, treeTo3acOpMap.at(this->operation), arg1
     );
     generated.push_back(code);
     return code.result;
@@ -209,11 +208,15 @@ std::optional<std::string> CallExprAST::generateCode(
 
         std::string arg1 = this->arguments
             .at(i)->generateCode(generator, generated).value();
-        tac_line_t param_code = generator.makeQuad(TAC_PROC_PARAM, arg1);
+        tac_line_t param_code = generator.makeQuad(
+            this->symTable, TAC_PROC_PARAM, arg1
+        );
         generated.push_back(param_code);
     }
 
-    tac_line_t call_code = generator.makeQuad(TAC_CALL, this->callee);
+    tac_line_t call_code = generator.makeQuad(
+        this->symTable, TAC_CALL, this->callee
+    );
     generated.push_back(call_code);
 
     return RETURN_ADDRESS;
@@ -227,8 +230,11 @@ std::optional<std::string> ProcedureAST::generateCode(
     TACGenerator &generator,
     std::vector<tac_line_t> &generated
 ) {
-    generated.push_back(generator.makeQuad(TAC_ENTER_PROC, this->proto->name));
+    generated.push_back(generator.makeQuad(
+        this->symTable, TAC_ENTER_PROC, this->proto->name
+    ));
     tac_line_t functionLabel = generator.makeQuad(
+        this->symTable,
         TAC_LABEL, 
         generator.customLabel(this->proto->name)
     );
@@ -239,11 +245,14 @@ std::optional<std::string> ProcedureAST::generateCode(
     // Return types are optional.
     if (this->proto->returnVariable != nullptr) {
         generator.makeQuad(
+            this->symTable,
             TAC_ASSIGN, this->proto->returnVariable->name, RETURN_ADDRESS
         );
     }
 
-    generated.push_back(generator.makeQuad(TAC_EXIT_PROC, this->proto->name));
+    generated.push_back(generator.makeQuad(
+        this->symTable, TAC_EXIT_PROC, this->proto->name
+    ));
 
     return std::nullopt;
 }
@@ -262,9 +271,9 @@ std::optional<std::string> IfStatementAST::generateCode(
     std::string cmp_result = 
         this->condition->generateCode(generator, generated).value();
 
-    tac_line_t skipBodyLabel = generator.makeQuad(TAC_LABEL);
+    tac_line_t skipBodyLabel = generator.makeQuad(this->symTable, TAC_LABEL);
     tac_line_t skipBodyJump = generator.makeQuad(
-        TAC_JMP_ZERO, skipBodyLabel.argument1
+        this->symTable, TAC_JMP_ZERO, skipBodyLabel.argument1
     );
 
     generated.push_back(skipBodyJump);
@@ -287,19 +296,19 @@ std::optional<std::string> WhileStatementAST::generateCode(
     TACGenerator &generator,
     std::vector<tac_line_t> &generated
 ) {
-    tac_line_t header = generator.makeQuad(TAC_LABEL);
+    tac_line_t header = generator.makeQuad(this->symTable, TAC_LABEL);
     generated.push_back(header);
 
     std::string cmp_result = 
         this->condition->generateCode(generator, generated).value();
 
     tac_line_t returnToHeaderJump = 
-        generator.makeQuad(TAC_UNCOND_JMP, header.argument1);
+        generator.makeQuad(this->symTable, TAC_UNCOND_JMP, header.argument1);
     
-    tac_line_t skipBodyLabel = generator.makeQuad(TAC_LABEL);
+    tac_line_t skipBodyLabel = generator.makeQuad(this->symTable, TAC_LABEL);
 
     tac_line_t skipBodyJump = generator.makeQuad(
-        TAC_JMP_ZERO, skipBodyLabel.argument1
+        this->symTable, TAC_JMP_ZERO, skipBodyLabel.argument1
     );
 
     generated.push_back(skipBodyJump);
@@ -328,7 +337,7 @@ std::optional<std::string> ArrayIndexAST::generateCode(
     std::string index_address = 
         this->index->generateCode(generator, generated).value();
     tac_line_t index_line = generator.makeQuad(
-        TAC_ARRAY_INDEX, array_address, index_address);
+        this->symTable, TAC_ARRAY_INDEX, array_address, index_address);
     generated.push_back(index_line);
 
     return index_line.result;

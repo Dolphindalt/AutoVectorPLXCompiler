@@ -70,31 +70,36 @@ static std::map<operation_t, tac_op_t> treeTo3acOpMap = {
 
 class ExprAST {
 public:
+    std::shared_ptr<SymbolTable> symTable;
     type_t type;
     bool is_array;
 
     ExprAST(
+        std::shared_ptr<SymbolTable> symTable,
         std::string file,
         unsigned int line,
         unsigned int column
-    ) : type(UNKNOWN), is_array(false), file(file), line(line), 
-        column(column) {};
+    ) : symTable(symTable), type(UNKNOWN), is_array(false), file(file), 
+        line(line), column(column) {};
 
     ExprAST(
+        std::shared_ptr<SymbolTable> symTable,
         type_t type, 
         std::string file,
         unsigned int line,
         unsigned int column
-    ) : type(type), is_array(false), file(file), line(line), column(column) {};
+    ) : symTable(symTable), type(type), is_array(false), file(file), 
+        line(line), column(column) {};
 
     ExprAST(
+        std::shared_ptr<SymbolTable> symTable,
         type_t type, 
         bool is_array,
         std::string file,
         unsigned int line,
         unsigned int column
-    ) : type(type), is_array(is_array), file(file), line(line), 
-        column(column) {};
+    ) : symTable(symTable), type(type), is_array(is_array), file(file), 
+        line(line), column(column) {};
 
     virtual ~ExprAST() {};
 
@@ -125,24 +130,32 @@ class ExprListAST : public ExprAST {
 public:
     std::vector<EASTPtr> expressions;
 
-    ExprListAST(std::string file, unsigned int line, unsigned int column) 
-    : ExprAST(file, line, column), expressions(std::vector<EASTPtr>()) {}
+    ExprListAST(
+        std::shared_ptr<SymbolTable> symTable, 
+        std::string file, 
+        unsigned int line, 
+        unsigned int column
+    ) 
+    : ExprAST(symTable, file, line, column), expressions(std::vector<EASTPtr>())
+    {}
 
     ExprListAST(
+        std::shared_ptr<SymbolTable> symTable,
         std::vector<EASTPtr> &expressions, 
         std::string file, 
         unsigned int line, 
         unsigned int column
     )
-    : ExprAST(file, line, column), expressions(expressions) {}
+    : ExprAST(symTable, file, line, column), expressions(expressions) {}
 
     ExprListAST(
+        std::shared_ptr<SymbolTable> symTable,
         ExprListAST &copy, 
         std::string file, 
         unsigned int line, 
         unsigned int column
     ) 
-    : ExprAST(file, line, column), expressions(copy.expressions) {}
+    : ExprAST(symTable, file, line, column), expressions(copy.expressions) {}
 
     void addChild(EASTPtr node) { 
         this->expressions.push_back(node); 
@@ -155,19 +168,18 @@ public:
 
 class NumberAST : public ExprAST {
 public:
-    std::shared_ptr<SymbolTable> symTable;
     std::string name;
     uint8_t value[NUMBER_SIZE_BYTES];
 
     NumberAST(
-        std::string &name, 
         std::shared_ptr<SymbolTable> symTable,
+        std::string &name, 
         type_t type,
         std::string file,
         unsigned int line,
         unsigned int column
     ) 
-    : ExprAST(type, file, line, column), symTable(symTable), name(name) {}
+    : ExprAST(symTable, type, file, line, column), name(name) {}
 
     std::vector<EASTPtr> getChildren() { return {}; };
 
@@ -181,20 +193,18 @@ public:
 
 class VariableAST : public ExprAST {
 public:
-    std::shared_ptr<SymbolTable> symTable;
     std::string name;
 
     VariableAST(
-        std::string &name, 
         std::shared_ptr<SymbolTable> symTable, 
+        std::string &name, 
         type_t type,
         bool is_array,
         std::string file,
         unsigned int line,
         unsigned int column
     )
-    : ExprAST(type, is_array, file, line, column), symTable(symTable), 
-        name(name) {}
+    : ExprAST(symTable, type, is_array, file, line, column), name(name) {}
 
     ~VariableAST() {
         this->symTable = nullptr;
@@ -216,6 +226,7 @@ public:
     EASTPtr lhs, rhs;
 
     BinaryExprAST(
+        std::shared_ptr<SymbolTable> symTable, 
         operation_t operation, 
         EASTPtr lhs, 
         EASTPtr rhs,
@@ -223,7 +234,8 @@ public:
         unsigned int line, 
         unsigned int column
     ) 
-    : ExprAST(file, line, column), operation(operation), lhs(lhs), rhs(rhs) {}
+    : ExprAST(symTable, file, line, column), operation(operation), 
+        lhs(lhs), rhs(rhs) {}
     
     std::vector<EASTPtr> getChildren() { return { this->rhs, this->lhs }; };
 
@@ -241,13 +253,15 @@ public:
     EASTPtr operand;
 
     UnaryExprAST(
+        std::shared_ptr<SymbolTable> symTable, 
         operation_t operation, 
         EASTPtr operand,
         std::string file, 
         unsigned int line, 
         unsigned int column 
     )
-    : ExprAST(file, line, column), operation(operation), operand(operand) {}
+    : ExprAST(symTable, file, line, column), 
+        operation(operation), operand(operand) {}
 
     std::vector<EASTPtr> getChildren() { return { operand }; };
 
@@ -261,19 +275,18 @@ public:
 
 class CallExprAST : public ExprAST {
 public:
-    std::shared_ptr<SymbolTable> symTable;
     std::string callee;
     std::vector<EASTPtr> arguments;
 
     CallExprAST(
+        std::shared_ptr<SymbolTable> symTable,
         std::string &callee, 
         std::vector<EASTPtr> arguments,
-        std::shared_ptr<SymbolTable> symTable,
         std::string file, 
         unsigned int line, 
         unsigned int column
     )
-    : ExprAST(file, line, column), symTable(symTable), callee(callee), 
+    : ExprAST(symTable, file, line, column), callee(callee), 
         arguments(arguments) {}
 
     std::vector<EASTPtr> getChildren() { return arguments; };
@@ -306,13 +319,13 @@ public:
     std::shared_ptr<ExprListAST> body;
 
     ProcedureAST(
+        std::shared_ptr<SymbolTable> symTable,
         std::shared_ptr<Prototype> proto, 
         std::shared_ptr<ExprListAST> body,
-        std::shared_ptr<SymbolTable> symTable,
         std::string file, 
         unsigned int line, 
         unsigned int column
-    ) : ExprAST(file, line, column), proto(proto), body(body) {}
+    ) : ExprAST(symTable, file, line, column), proto(proto), body(body) {}
 
     std::vector<EASTPtr> getChildren() { return { body }; };
 
@@ -330,13 +343,14 @@ public:
     EASTPtr body;
 
     IfStatementAST(
+        std::shared_ptr<SymbolTable> symTable,
         EASTPtr condition, 
         EASTPtr body,
         std::string file, 
         unsigned int line, 
         unsigned int column
     )
-    : ExprAST(file, line, column), condition(condition), 
+    : ExprAST(symTable, file, line, column), condition(condition), 
         body(body) {}
     
     std::vector<EASTPtr> getChildren() { return { condition, body }; };
@@ -355,13 +369,14 @@ public:
     EASTPtr body;
 
     WhileStatementAST(
+        std::shared_ptr<SymbolTable> symTable,
         EASTPtr condition, 
         EASTPtr body,
         std::string file, 
         unsigned int line, 
         unsigned int column
     )
-    : ExprAST(file, line, column), condition(condition), 
+    : ExprAST(symTable, file, line, column), condition(condition), 
         body(body) {}
 
     std::vector<EASTPtr> getChildren() { return { condition, body }; };
@@ -380,13 +395,15 @@ public:
     EASTPtr index;
 
     ArrayIndexAST(
+        std::shared_ptr<SymbolTable> symTable,
         std::shared_ptr<VariableAST> array, 
         EASTPtr index,
         type_t type,
         std::string file,
         unsigned int line,
         unsigned int column
-    ) : ExprAST(type, file, line, column), array(array), index(index) {}
+    ) : ExprAST(symTable, type, file, line, column), array(array), 
+        index(index) {}
 
     std::vector<EASTPtr> getChildren() { return { array, index }; };
 
