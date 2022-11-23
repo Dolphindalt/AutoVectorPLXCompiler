@@ -7,6 +7,8 @@
  */
 #include <parser.h>
 
+#include <string.h>
+
 Parser::Parser(const token_stream_t &tokens) 
 : tokens(tokens) {
     std::shared_ptr<SymbolTable> globalScope = std::make_shared<SymbolTable>();
@@ -389,10 +391,24 @@ void Parser::parseProcedure(std::shared_ptr<ExprListAST> parent) {
 
     for (uint8_t i = 0; i < func_info.procedure.argumentsLength; i++) {
         func_info.procedure.argumentTypes[i] = prototype->arguments.at(i)->type;
+        memset(func_info.procedure.argumentNames[i], 0, MAX_ID_LEN);
+        memcpy(
+            func_info.procedure.argumentNames[i], 
+            prototype->arguments.at(i)->name.c_str(),
+            prototype->arguments.at(i)->name.size()
+        );
     }
 
-    func_info.procedure.returnType = 
-        (returnId != nullptr) ? returnId->type : VOID;
+    func_info.procedure.returnType = VOID;
+    memset(func_info.procedure.returnTypeName, 0, MAX_ID_LEN);
+    if (returnId != nullptr) {
+        func_info.procedure.returnType = returnId->type;
+        memcpy(
+            func_info.procedure.returnTypeName,
+            prototype->returnVariable->name.c_str(),
+            prototype->returnVariable->name.size()
+        );
+    }
 
     this->currentScope()->insert(prototype->name, func_info);
 

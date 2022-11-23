@@ -14,7 +14,8 @@ void Preprocessor::applyTwoInstructionRewrite() {
         tac_line_t &i1 = this->instructions.at(i-1);
         tac_line_t &i2 = this->instructions.at(i);
 
-        bool didRemove = this->applyRedundantRewriteRule(i1, i2);
+        bool didRemove = this->applyRedundantRewriteRule(i1, i2) ||
+            this->removeSingleAssignments(i2);
 
         if (didRemove) {
             this->instructions.erase(this->instructions.begin() + i);
@@ -48,4 +49,10 @@ bool Preprocessor::applyRedundantRewriteRule(tac_line_t &i1, tac_line_t &i2) {
         }
     }
     return false;
+}
+
+bool Preprocessor::removeSingleAssignments(tac_line_t &i2) {
+    return i2.operation == TAC_ASSIGN && 
+        i2.argument1 == "" && 
+        i2.argument2 == "";
 }

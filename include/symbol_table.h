@@ -1,7 +1,9 @@
 #ifndef SYMBOL_TABLE_H__
 #define SYMBOL_TABLE_H__
 
+#define MAX_ID_LEN 32
 #define MAXIMUM_ARGUMENTS 16
+#define VARIABLE_SIZE_BYTES 8
 
 #include <lexer.h>
 #include <string>
@@ -76,6 +78,8 @@ typedef struct symbol_table_entry {
             uint8_t argumentsLength;
             type_t argumentTypes[MAXIMUM_ARGUMENTS];
             type_t returnType;
+            char argumentNames[MAXIMUM_ARGUMENTS][MAX_ID_LEN];
+            char returnTypeName[MAX_ID_LEN];
         } procedure;
 
         struct {
@@ -102,6 +106,8 @@ public:
         unsigned int *out_level, 
         st_entry_t *out_entry
     ) const;
+
+    unsigned int getTypeSizeBytes(const st_entry_t &entry) const;
 
     bool isGlobalScope() const;
 

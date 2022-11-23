@@ -64,6 +64,15 @@ bool tac_line_t::is_binary_operation(const tac_line &line) {
     return false;
 }
 
+bool tac_line_t::is_label(const std::string &label) {
+    return label.size() >= 2 && label.at(0) == '$' && label.at(1) == 'L';
+}
+
+std::string tac_line_t::extract_label(const std::string &label) {
+    ASSERT(tac_line_t::is_label(label));
+    return label.substr(2, label.size() - 2);
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = std::to_string(tac.bid) + 
         ": " + tacOpToStringMap.at(tac.operation);

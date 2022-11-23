@@ -1,40 +1,69 @@
 #ifndef REGISTER_TABLE_H
 #define REGISTER_TABLE_H
 
+#define NO_REGISTER "no register"
+
 #include <map>
 #include <set>
 #include <string>
 
-typedef enum regenum {
-    NO_REGISTER = 0, // If no register is available.
-    RCX,
-    RDX,
-    RSI,
-    RDI,
-    R8, // Ye new registers.
-    R9,
-    R10,
-    R11,
-    RBX, // Start of perserved registers.
-    R12,
-    R13,
-    R14,
-    R15, // End of perserved registers.
-    RAX // RAX is last because it is used for return values and results.
-} reg_t;
+using reg_t = std::string;
+
+typedef enum register_type {
+    NORMAL,
+    AVX
+} register_type_t;
+
+static std::set<reg_t> registers = {
+    "rcx",
+    "rdx",
+    "rsi",
+    "rdi",
+    "r8",
+    "r9",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "rax"
+};
+
+static std::set<reg_t> vectorRegisters = {
+    "ymm0",
+    "ymm1",
+    "ymm2",
+    "ymm3",
+    "ymm4",
+    "ymm5",
+    "ymm6",
+    "ymm7",
+    "ymm8",
+    "ymm9",
+    "ymm10",
+    "ymm11",
+    "ymm12",
+    "ymm13",
+    "ymm14",
+    "ymm15"
+};
 
 class RegisterTable {
 public:
     RegisterTable();
 
-    void updateRegisterValue(const reg_t reg, const std::string &newValue);
+    void updateRegisterValue(const reg_t &reg, const std::string &newValue);
 
-    reg_t getUnusedRegister() const;
+    reg_t getUsedRegister(const register_type_t type) const;
+    reg_t getUnusedRegister(const register_type_t type) const;
     reg_t getRegisterWithValue(const std::string &value) const;
     bool isValueInRegister(const std::string &value) const;
-    bool doesRegisterContainValue(const reg_t reg) const;
-    std::string getRegisterValue(const reg_t reg) const;
+    bool doesRegisterContainValue(const reg_t &reg) const;
+    std::string getRegisterValue(const reg_t &reg) const;
 private:
+    std::set<reg_t> selectRegisters(const register_type_t type) const;
+
     std::map<reg_t, std::string> valueMap;
     std::map<std::string, reg_t> regMap;
 };
@@ -44,7 +73,7 @@ class AddressTable {
 public:
     AddressTable();
 
-    void insertVariableIntoStack(
+    unsigned int insertVariableIntoStack(
         const std::string &name, 
         const unsigned int size_bytes
     );
@@ -60,10 +89,10 @@ class DataSection {
 public:
     DataSection();
 
-    void insert(const std::string &name);
+    void insert(const std::string &name, unsigned int sizeBytes);
     bool isVariableInDataSection(const std::string &name) const;
 private:
-    std::set<std::string> dataKeys;
+    std::map<std::string, unsigned int> dataKeys;
 };
 
 #endif

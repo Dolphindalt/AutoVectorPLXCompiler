@@ -1,9 +1,10 @@
 #include <codegen/asm_generator.h>
 
+#include <codegen/asm_file.h>
+#include <codegen/procedure.h>
+
 #include <assertions.h>
 #include <logging.h>
-
-AddressTable globalAddressTable;
 
 AssemblyGenerator::AssemblyGenerator() : symTable(SymbolTable()) {}
 
@@ -12,9 +13,16 @@ AssemblyGenerator::~AssemblyGenerator() {}
 void AssemblyGenerator::generateAssembly(
     std::vector<tac_line_t> &instructions
 ) {
+    INFO_LOG("Starting code generation...");
     this->populateSymbolTableDefaults(instructions);
+    this->computeLiveness(instructions);
     
-    
+    AsmFile asmFile;
+    Procedure entryPoint(
+        &asmFile, instructions.begin(), instructions.end(),
+        &symTable, &liveness, &regTable, true
+    );
+    asmFile.to_file("output.s");
 }
 
 void AssemblyGenerator::populateSymbolTableDefaults(

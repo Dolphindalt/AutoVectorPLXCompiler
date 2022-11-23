@@ -26,7 +26,7 @@ void AsmFile::replaceTextInstruction(
 }
 
 const unsigned int AsmFile::getLine() const {
-    return this->textSectionLines.size() - 1;
+    return this->textSectionLines.size();
 }
 
 const void AsmFile::to_file(const char *fileName) const {

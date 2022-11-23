@@ -40,6 +40,29 @@ bool SymbolTable::lookup(
     return false;
 }
 
+unsigned int SymbolTable::getTypeSizeBytes(const st_entry_t &entry) const {
+    const st_entry_type_t type = entry.entry_type;
+    unsigned int sizeBytes = 0;
+    switch (type) {
+        case ST_VARIABLE:
+            if (entry.variable.isArray) {
+                sizeBytes = entry.variable.arraySize * VARIABLE_SIZE_BYTES;
+            } else {
+                sizeBytes = VARIABLE_SIZE_BYTES;
+            }
+            break;
+        case ST_LITERAL:
+            // Literals cannot be arrays, yet.
+            sizeBytes = VARIABLE_SIZE_BYTES;
+            break;
+        default:
+            ERROR_LOG("invalid symbol table entry for type %d", type);
+            exit(EXIT_FAILURE);
+            break;
+    }
+    return sizeBytes;
+}
+
 bool SymbolTable::isGlobalScope() const {
     return this->level == 0;
 }
