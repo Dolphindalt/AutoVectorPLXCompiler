@@ -36,6 +36,26 @@ private:
      */
     bool removeSingleAssignments(tac_line_t &i2);
 
+    /**
+     * All loop headers are generated into the following form:
+     * $0 = op1 cond op2
+     * jump if $0 is zero
+     * This can be converted into a more compact form where all cond operaions 
+     * are the compare (cmp) operation and then the jump type determines the 
+     * comparison performed.
+     * 
+     * cmp op1 op2 for each condition implies a jump:
+     * = then je
+     * # then jne
+     * < then jg
+     * > then jl
+     * <= then jge
+     * >= then jle
+     * 
+     * This happens inline.
+     */
+    void convertLoopOperation(tac_line_t &i1, tac_line_t &i2);
+
     std::vector<tac_line_t> &instructions;
 };
 

@@ -61,28 +61,57 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             
             break;
         case TAC_UNCOND_JMP:
+            this->asmFile->insertTextInstruction(
+                "\tjmp " + tac_line_t::extract_label(instruction.argument1)
+            );
             break;
         case TAC_READ:
             break;
         case TAC_WRITE:
             break;
         case TAC_LABEL:
-            this->asmFile->insertTextInstruction(instruction.argument1 + ":");
+            this->asmFile->insertTextInstruction(
+                tac_line_t::extract_label(instruction.argument1) + ":");
             break;
         case TAC_CALL:
             this->asmFile->insertTextInstruction(
-                "call " + instruction.argument1
+                "call " + tac_line_t::extract_label(instruction.argument1)
             );
             break;
         case TAC_JMP_E:
+            this->asmFile->insertTextInstruction(
+                "\tje " + tac_line_t::extract_label(instruction.argument1)
+            );
             break;
         case TAC_JMP_L:
+            this->asmFile->insertTextInstruction(
+                "\tjl " + tac_line_t::extract_label(instruction.argument1)
+            );
             break;
         case TAC_JMP_G:
+            this->asmFile->insertTextInstruction(
+                "\tjg " + tac_line_t::extract_label(instruction.argument1)
+            );
+            break;
+        case TAC_JMP_LE:
+            this->asmFile->insertTextInstruction(
+                "\tjle " + tac_line_t::extract_label(instruction.argument1)
+            );
+            break;
+        case TAC_JMP_GE:
+            this->asmFile->insertTextInstruction(
+                "\tjge " + tac_line_t::extract_label(instruction.argument1)
+            );
             break;
         case TAC_JMP_NE:
+            this->asmFile->insertTextInstruction(
+                "\tjne " + tac_line_t::extract_label(instruction.argument1)
+            );
             break;
         case TAC_JMP_ZERO:
+            this->asmFile->insertTextInstruction(
+                "\tjz " + tac_line_t::extract_label(instruction.argument1)
+            );
             break;
         case TAC_RETVAL:
             break;
@@ -109,13 +138,56 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             );
             // Produce the instruction.
             this->asmFile->insertTextInstruction(
-                "\tmovl " + op1.getAddressModeString() + " \%" + res_reg 
+                "\tmov " + op1.getAddressModeString() + ", \%" + res_reg 
             );
             this->regTable->updateRegisterValue(res_reg, instruction.result);
             break;
         }
-        case TAC_ADD:
+        case TAC_ADD: {
+            Address op1 = this->getOperandLocation(
+                instruction.argument1, 
+                instruction.table
+            );
+            const Address op2 = this->getOperandLocation(
+                instruction.argument2,
+                instruction.table
+            );
+
+            // Add is in the form dest = dest + src.
+            // This means that operand1 must be a register.
+            if (!op1.isRegister()) {
+                reg_t reg = this->getRegister(
+                    instruction.argument1, 
+                    instruction.table, 
+                    NORMAL, 
+                    instruction.bid
+                );
+                this->asmFile->insertTextInstruction(
+                    "\tmov " + op1.getAddressModeString() + ", " + reg
+                );
+            }
+
+            // Op1 now must be a register.
+            op1 = this->getOperandLocation(
+                instruction.argument1, 
+                instruction.table
+            );
+            
+            ASSERT(op1.isRegister() == true);
+
+            // Operand1 is also the result. We will say the result is 
+            // in the selected register as a result.
+            this->regTable->updateRegisterValue(
+                op1.getName(), instruction.result
+            );
+
+            this->asmFile->insertTextInstruction(
+                "\tadd " + op2.getAddressModeString() + ", " + 
+                    op1.getAddressModeString()
+            );
+
             break;
+        }
         case TAC_SUB:
             break;
         case TAC_DIV:
@@ -123,17 +195,36 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_MULT:
             break;
         case TAC_LESS_THAN:
-            break;
         case TAC_GREATER_THAN:
-            break;
         case TAC_GE_THAN:
-            break;
         case TAC_LE_THAN:
-            break;
         case TAC_EQUALS:
+        case TAC_NOT_EQUALS: {
+            // Two cases. Comparing for a control flow or storing the result.
+            // For the control flow.
+            const Address operand1 = this->getOperandLocation(
+                instruction.argument1,
+                instruction.table
+            );
+            const Address operand2 = this->getOperandLocation(
+                instruction.argument2,
+                instruction.table
+            );
+            this->asmFile->insertTextInstruction(
+                "\tcmp " + operand2.getAddressModeString() + 
+                    ", " + operand1.getAddressModeString()
+            );
+            if (instruction.result != "") {
+                reg_t resReg = this->getRegister(
+                    instruction.result, 
+                    instruction.table, 
+                    NORMAL, 
+                    instruction.bid
+                );
+                this->asmFile->insertTextInstruction("set \%" + resReg);
+            }
             break;
-        case TAC_NOT_EQUALS:
-            break;
+        }
         case TAC_ARRAY_INDEX:
             break;
         default:
@@ -254,7 +345,7 @@ reg_t Procedure::getRegister(
 }
 
 void Procedure::generateStackStore(unsigned int offset, reg_t reg) {
-    std::string inst = "\tmov " + reg + " " + int_to_hex(offset) + "(\%rbp)";
+    std::string inst = "\tmov " + reg + ", " + int_to_hex(offset) + "(\%rbp)";
     this->asmFile->insertTextInstruction(inst);
 }
 
@@ -287,16 +378,24 @@ void Procedure::allocateProcedureArguments(const tac_line_t &procedureLabel) {
 
 void Procedure::insertPrologue() {
     unsigned int offset = this->functionPrelog;
+
+    // We need to specify the entry point.
+    if (this->isMain) {
+        this->asmFile->insertTextInstruction(".global main", offset);
+        this->asmFile->insertTextInstruction("main:", offset + 1);
+        offset += 2;
+    }
+
     this->asmFile->insertTextInstruction("\tpushq \%rbp", offset);
-    this->asmFile->insertTextInstruction("\tmovq \%rsp \%rbp", offset + 1);
+    this->asmFile->insertTextInstruction("\tmovq \%rsp, \%rbp", offset + 1);
     this->asmFile->insertTextInstruction(
-        "\tsubl " + int_to_hex(this->stack.getStackSize()) + " \%rsp",
+        "\tsub " + int_to_hex(this->stack.getStackSize()) + ", \%rsp",
         offset + 2
     );
 }
 
 void Procedure::instertEpilogue() {
-    this->asmFile->insertTextInstruction("\tmovq \%rbp \%rsp");
+    this->asmFile->insertTextInstruction("\tmovq \%rbp, \%rsp");
     this->asmFile->insertTextInstruction("\tpopq \%rbp");
     this->asmFile->insertTextInstruction("\tret");
 }

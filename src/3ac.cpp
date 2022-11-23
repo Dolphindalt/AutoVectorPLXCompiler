@@ -10,6 +10,8 @@ bool tac_line_t::transfers_control(const tac_line_t &line) {
         case TAC_JMP_E:
         case TAC_JMP_L:
         case TAC_JMP_G:
+        case TAC_JMP_GE:
+        case TAC_JMP_LE:
         case TAC_JMP_NE:
         case TAC_JMP_ZERO:
         // Yes, function calls count as a jump.
@@ -55,6 +57,12 @@ bool tac_line_t::is_procedure_call(const tac_line &line) {
 }
 
 bool tac_line_t::is_binary_operation(const tac_line &line) {
+    // Certain comparison operations are binary, but they store no result,
+    // so we no longer consider them binary.
+    if (line.result == "") {
+        return false;
+    }
+
     switch (line.operation) {
         case TAC_ASSIGN ... TAC_ARRAY_INDEX:
             return true;
@@ -195,7 +203,7 @@ std::string TACGenerator::newTemp() {
 }
 
 std::string TACGenerator::newLabel() {
-    return "$L" + std::to_string(this->labelCounter++);
+    return "$L" + std::string("NO") + std::to_string(this->labelCounter++);
 }
 
 std::string TACGenerator::customLabel(std::string name) const {

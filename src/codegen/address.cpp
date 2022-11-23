@@ -13,6 +13,7 @@ Address::Address(
 const std::string Address::getAddressModeString() const {
     switch (this->type) {
         case A_REGISTER:
+            return "\%" + name;
         case A_LITERAL:
             return name;
         case A_STACK:
@@ -33,4 +34,12 @@ const std::string Address::getAddressModeString() const {
 
     ERROR_LOG("invalid address type passed");
     exit(EXIT_FAILURE);
+}
+
+const bool Address::isRegister() const {
+    return this->type == A_REGISTER;
+}
+
+const std::string Address::getName() const {
+    return this->name;
 }

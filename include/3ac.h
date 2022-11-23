@@ -28,6 +28,8 @@ typedef enum tac_op {
     TAC_JMP_E,
     TAC_JMP_L,
     TAC_JMP_G,
+    TAC_JMP_LE,
+    TAC_JMP_GE,
     TAC_JMP_NE,
     TAC_JMP_ZERO,
     // Return a single value.
@@ -62,6 +64,8 @@ static std::map<tac_op_t, std::string> tacOpToStringMap = {
     {TAC_JMP_E, "TAC_JUMP_EQUALS"},
     {TAC_JMP_L, "TAC_JUMP_LESS_THAN"},
     {TAC_JMP_G, "TAC_JUMP_GREATER_THAN"},
+    {TAC_JMP_LE, "TAC_JUMP_LESS_THAN_EQUAL_TO"},
+    {TAC_JMP_GE, "TAC_JUMP_GREATER_THAN_EQUAL_TO"},
     {TAC_JMP_NE, "TAC_JUMP_NOT_EQUALS"},
     {TAC_JMP_ZERO, "TAC_JUMP_ZERO"},
     {TAC_RETVAL, "TAC_RETURN_VALUE"},
