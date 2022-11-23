@@ -22,12 +22,6 @@ const std::string Address::getAddressModeString() const {
             } else {
                 return int_to_hex(this->offset) + "(\%rbp)";
             }
-        case A_GLOBAL:
-            if (this->offset == 0) {
-                return "(" + this->name + ")";
-            } else {
-                return int_to_hex(this->offset) + "(" + this->name + ")";
-            }
         default:
             break;
     }

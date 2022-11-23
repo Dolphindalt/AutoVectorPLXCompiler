@@ -11,8 +11,6 @@
 
 class Procedure {
 public:
-    static DataSection data;
-
     Procedure(
         AsmFile *asmFile,
         std::vector<tac_line_t>::iterator start,
@@ -30,7 +28,7 @@ private:
         std::shared_ptr<SymbolTable> symTable
     ) const;
 
-    Address getOperandLocation(
+    Address getLocation(
         const std::string &value,
         std::shared_ptr<SymbolTable> symTable
     );
@@ -49,6 +47,8 @@ private:
     void insertPrologue();
 
     void instertEpilogue();
+
+    void insertDataSection();
 
     AsmFile *asmFile;
     SymbolTable *cgTable;

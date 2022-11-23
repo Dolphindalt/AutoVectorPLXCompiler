@@ -26,17 +26,6 @@ private:
     bool applyRedundantRewriteRule(tac_line_t &i1, tac_line_t &i2);
 
     /**
-     * A single assignment are produced by a variable declaration. A variable 
-     * declaration must appear before its use, but cannot be assigned, so 
-     * a single result with the name of the variable is produced.
-     * 
-     * Assignment instructions that have only a result are to be removed.
-     * 
-     * @return True if the second instruction should be removed.
-     */
-    bool removeSingleAssignments(tac_line_t &i2);
-
-    /**
      * All loop headers are generated into the following form:
      * $0 = op1 cond op2
      * jump if $0 is zero

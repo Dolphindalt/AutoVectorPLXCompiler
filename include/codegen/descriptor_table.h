@@ -85,14 +85,4 @@ private:
     std::map<std::string, unsigned int> variableStackOffset;
 };
 
-class DataSection {
-public:
-    DataSection();
-
-    void insert(const std::string &name, unsigned int sizeBytes);
-    bool isVariableInDataSection(const std::string &name) const;
-private:
-    std::map<std::string, unsigned int> dataKeys;
-};
-
 #endif

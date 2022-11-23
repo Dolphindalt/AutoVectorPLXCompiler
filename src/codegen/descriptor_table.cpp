@@ -91,13 +91,3 @@ bool AddressTable::isVaribleInStack(const std::string &name) const {
 const unsigned int AddressTable::getStackSize() const {
     return this->stackPointer;
 }
-
-DataSection::DataSection() {}
-
-void DataSection::insert(const std::string &name, unsigned int sizeBytes) {
-    this->dataKeys.insert(std::make_pair(name, sizeBytes));
-}
-
-bool DataSection::isVariableInDataSection(const std::string &name) const {
-    return this->dataKeys.count(name) > 0;
-}

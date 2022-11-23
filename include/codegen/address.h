@@ -6,8 +6,7 @@
 typedef enum address_type {
     A_REGISTER,
     A_LITERAL,
-    A_STACK,
-    A_GLOBAL
+    A_STACK
 } address_type_t;
 
 class Address {
