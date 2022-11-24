@@ -11,6 +11,8 @@
 
 class Procedure {
 public:
+    static DataSection data;
+
     Procedure(
         AsmFile *asmFile,
         std::vector<tac_line_t>::iterator start,
@@ -30,7 +32,8 @@ private:
 
     Address getLocation(
         const std::string &value,
-        std::shared_ptr<SymbolTable> symTable
+        std::shared_ptr<SymbolTable> symTable,
+        const TID tid
     );
 
     reg_t getRegister(
@@ -38,6 +41,11 @@ private:
         std::shared_ptr<SymbolTable> symTable,
         register_type_t type,
         const TID instID
+    );
+
+    Address allocateMemory(
+        const std::string &value,
+        std::shared_ptr<SymbolTable> symTable
     );
 
     void generateStackStore(unsigned int offset, reg_t reg);
@@ -49,6 +57,13 @@ private:
     void instertEpilogue();
 
     void insertDataSection();
+
+    Address forceAddressIntoRegister(
+        const std::string &value,
+        std::shared_ptr<SymbolTable> symTable,
+        register_type_t type,
+        const TID instID
+    );
 
     AsmFile *asmFile;
     SymbolTable *cgTable;

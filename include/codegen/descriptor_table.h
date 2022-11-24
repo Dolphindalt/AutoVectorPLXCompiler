@@ -61,11 +61,17 @@ public:
     bool isValueInRegister(const std::string &value) const;
     bool doesRegisterContainValue(const reg_t &reg) const;
     std::string getRegisterValue(const reg_t &reg) const;
+
+    void updateRegisterContentType(const reg_t reg, bool isAddr);
+    bool isRegisterHoldingAddress(const reg_t reg) const;
+
+    bool isRegisterUnused(const reg_t &reg) const;
 private:
     std::set<reg_t> selectRegisters(const register_type_t type) const;
 
     std::map<reg_t, std::string> valueMap;
     std::map<std::string, reg_t> regMap;
+    std::map<reg_t, bool> addressMap;
 };
 
 // For this simple language, all variables are 8 bytes, excluding arrays.
@@ -83,6 +89,17 @@ public:
 private:
     unsigned int stackPointer = 0;
     std::map<std::string, unsigned int> variableStackOffset;
+};
+
+class DataSection {
+public:
+    DataSection();
+
+    void insert(const std::string &name, unsigned int sizeBytes);
+    bool isVariableInDataSection(const std::string &name) const;
+    const std::map<std::string, unsigned int> &getDataObjects() const;
+private:
+    std::map<std::string, unsigned int> dataKeys;
 };
 
 #endif

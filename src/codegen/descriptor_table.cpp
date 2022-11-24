@@ -2,7 +2,14 @@
 
 #include <logging.h>
 
-RegisterTable::RegisterTable() {}
+RegisterTable::RegisterTable() {
+    for (auto i : registers) {
+        this->addressMap.insert(std::make_pair(i, false));
+    }
+    for (auto i : vectorRegisters) {
+        this->addressMap.insert(std::make_pair(i, false));
+    }
+}
 
 void RegisterTable::updateRegisterValue(
     const reg_t &reg, 
@@ -52,6 +59,18 @@ std::string RegisterTable::getRegisterValue(const reg_t &reg) const {
     return this->valueMap.at(reg);
 }
 
+void RegisterTable::updateRegisterContentType(const reg_t reg, bool isAddr) {
+    this->addressMap[reg] = isAddr;
+}
+
+bool RegisterTable::isRegisterHoldingAddress(const reg_t reg) const {
+    return this->addressMap.at(reg);
+}
+
+bool RegisterTable::isRegisterUnused(const reg_t &reg) const {
+    return this->valueMap.count(reg) == 0;
+}
+
 std::set<reg_t> RegisterTable::selectRegisters(
     const register_type_t type
 ) const {
@@ -90,4 +109,18 @@ bool AddressTable::isVaribleInStack(const std::string &name) const {
 
 const unsigned int AddressTable::getStackSize() const {
     return this->stackPointer;
+}
+
+DataSection::DataSection() {}
+
+void DataSection::insert(const std::string &name, unsigned int sizeBytes) {
+    this->dataKeys.insert(std::make_pair(name, sizeBytes));
+}
+
+bool DataSection::isVariableInDataSection(const std::string &name) const {
+    return this->dataKeys.count(name) > 0;
+}
+
+const std::map<std::string, unsigned int> &DataSection::getDataObjects() const {
+    return this->dataKeys;
 }

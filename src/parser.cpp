@@ -945,6 +945,7 @@ void Parser::parseType(type_t *type, bool *is_array, unsigned int *array_size) {
                 }
 
                 *array_size = entry.variable.value.int_value;
+                INFO_LOG("constant %s value is %d", sizeToken.lexeme.c_str(), *array_size);
 
                 break;
             }

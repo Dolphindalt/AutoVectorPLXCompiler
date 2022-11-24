@@ -81,6 +81,12 @@ std::string tac_line_t::extract_label(const std::string &label) {
     return label.substr(2, label.size() - 2);
 }
 
+bool tac_line_t::is_user_defined_var(const std::string &var) {
+    return !(
+        var.size() >= 2 && var.at(0) == '$' && var.at(1) == 't'
+    );
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = std::to_string(tac.bid) + 
         ": " + tacOpToStringMap.at(tac.operation);
@@ -199,7 +205,7 @@ tac_line_t TACGenerator::makeQuad(
 }
 
 std::string TACGenerator::newTemp() {
-    return "$" + std::to_string(this->tempCounter++);
+    return "$t" + std::to_string(this->tempCounter++);
 }
 
 std::string TACGenerator::newLabel() {
