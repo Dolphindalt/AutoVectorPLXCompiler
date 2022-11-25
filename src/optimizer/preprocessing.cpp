@@ -66,16 +66,16 @@ void Preprocessor::convertLoopOperation(tac_line_t &i1, tac_line_t &i2) {
                 i2.operation = TAC_JMP_NE;
                 break;
             case TAC_GREATER_THAN:
-                i2.operation = TAC_JMP_G;
-                break;
-            case TAC_LESS_THAN:
                 i2.operation = TAC_JMP_L;
                 break;
+            case TAC_LESS_THAN:
+                i2.operation = TAC_JMP_G;
+                break;
             case TAC_LE_THAN:
-                i2.operation = TAC_JMP_LE;
+                i2.operation = TAC_JMP_GE;
                 break;
             case TAC_GE_THAN:
-                i2.operation = TAC_JMP_GE;
+                i2.operation = TAC_JMP_LE;
                 break;
             default:
                 break;

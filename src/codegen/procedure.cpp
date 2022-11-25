@@ -3,8 +3,8 @@
 #include <logging.h>
 #include <assertions.h>
 
-#define PUSH(reg) this->asmFile->insertTextInstruction("\tpush " reg)
-#define POP(reg) this->asmFile->insertTextInstruction("\tpop " reg)
+#define PUSH(reg) this->asmFile->insertTextInstruction("\tpushq " reg)
+#define POP(reg) this->asmFile->insertTextInstruction("\tpopq " reg)
 
 DataSection Procedure::data;
 
@@ -82,6 +82,7 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
                 instruction.bid
             );
 
+            // 8 pushes of 8 bytes = 64 bytes added to stack.
             PUSH("\%rax");
             PUSH("\%rcx");
             PUSH("\%rdx");
@@ -90,7 +91,7 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             PUSH("\%rsi");
             PUSH("\%rdi");
             this->asmFile->insertTextInstruction(
-                "\tmov " + thingToWrite.getAddressModeString(this->regTable) +
+                "\tmovq " + thingToWrite.getAddressModeString(this->regTable) +
                     ", \%rdi"
             );
             this->asmFile->insertTextInstruction("\tcall write_pl_0");
@@ -479,10 +480,12 @@ void Procedure::insertPrologue() {
 
     this->asmFile->insertTextInstruction("\tpushq \%rbp", offset);
     this->asmFile->insertTextInstruction("\tmovq \%rsp, \%rbp", offset + 1);
-    this->asmFile->insertTextInstruction(
-        "\tsubq " + int_to_hex(this->stack.getStackSize()) + ", \%rsp",
-        offset + 2
-    );
+    if (this->stack.getStackSize() != 0) {
+        this->asmFile->insertTextInstruction(
+            "\tsubq " + int_to_hex(this->stack.getStackSize()) + ", \%rsp",
+            offset + 2
+        );
+    }
 }
 
 void Procedure::instertEpilogue() {

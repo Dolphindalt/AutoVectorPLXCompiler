@@ -3,8 +3,7 @@ begin
     i := 0;
     while i < 1000 do
     begin
-        a[i] := i;
-        !a[i];
+        !i;
         i := i + 1
     end;
 end.
