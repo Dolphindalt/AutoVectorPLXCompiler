@@ -119,7 +119,7 @@ void NaturalLoop::findInductionVariables() {
         }
     });
 
-    INFO_LOG("Found induction variables: ");
+    INFO_LOG("Found simple induction variables: ");
     for (auto str : this->inductionVariables) {
         INFO_LOG("%s", str.c_str());
     }
@@ -173,6 +173,11 @@ void NaturalLoop::findInductionVariables() {
             changed = true;
             old = this->inductionVariables;
         }
+    }
+
+    INFO_LOG("Found induction variables: ");
+    for (auto str : this->inductionVariables) {
+        INFO_LOG("%s", str.c_str());
     }
 }
 
