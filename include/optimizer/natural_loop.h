@@ -3,7 +3,9 @@
 
 #include <optimizer/basic_block.h>
 #include <optimizer/reach.h>
+#include <optimizer/dominator.h>
 
+#include <functional>
 #include <string>
 
 using address = std::string;
@@ -21,16 +23,32 @@ using address = std::string;
  */
 class NaturalLoop {
 public:
-    NaturalLoop(BBP header, BBP footer, const Reach *reach);
+    NaturalLoop(
+        BBP header, BBP footer, const Reach *reach, const Dominator *dom
+    );
 
+    /**
+     * Because the footer dominates the header, the path to the header will
+     * be dominated all the way until the footer. This allows for a traversal
+     * of the loop using the dominance and DFS.
+     */
+    void forEachBBInBody(std::function<void(BBP)> action);
+
+    /**
+     * A 3AC statement is a loop invariant if its operands
+     * a. Are constant. OR
+     * b. Are defined outside the loop. OR
+     * c. Are defined by some invariant in the same loop.
+     */
     void findInvariants();
 
-    bool isOperandInvariant(
-        const std::string &operand,
-        const BBP bb,
-        const std::set<std::string> &invariants,
-        const std::set<std::string> &outsideDeclarations
-    ) const;
+    /**
+     * A basic induction variable take on the form 
+     * X := X + C
+     * X := X - C
+     * An induction variable is a linear function of some induction variable.
+     */
+    void findInductionVariables();
 
     /** 
      * A simple loop has its header as a predecessor and successor of the 
@@ -40,15 +58,30 @@ public:
      */
     bool isSimpleLoop() const;
 
+    bool isInvariant(const std::string &value) const;
+
     const BBP getHeader() const;
     const BBP getFooter() const;
 private:
+    bool isOperandInvariant(
+        const std::string &operand,
+        const BBP bb,
+        const std::set<std::string> &invariants,
+        const std::set<std::string> &outsideDeclarations,
+        const std::shared_ptr<SymbolTable> &table
+    ) const;
+
+    BBP findNextDommed(BBP bb) const;
 
     BBP header;
     BBP footer;
     const Reach *reach;
+    const Dominator *dom;
 
-    std::set<tac_line_t> invariants;
+    std::set<std::string> invariants;
+    std::set<tac_line_t> instructionsWithInvariants;
+    std::set<std::string> simpleInductionVariables;
+    std::set<std::string> inductionVariables;
 };
 
 #endif

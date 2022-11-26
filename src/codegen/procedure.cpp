@@ -381,8 +381,6 @@ reg_t Procedure::getRegister(
     const bool noNextUse = liveness.result.next_use == NO_NEXT_USE;
     const bool isValueInReg = this->regTable->isValueInRegister(value);
 
-    INFO_LOG("Liveness: is_dead %d no next use %d", isDead, noNextUse);
-
     if (isValueInReg && noNextUse && isDead) {
         return this->regTable->getRegisterWithValue(value);
     } else if (this->regTable->getUnusedRegister(type) != NO_REGISTER) {

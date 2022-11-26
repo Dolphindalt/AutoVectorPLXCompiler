@@ -98,7 +98,8 @@ public:
     static bool is_label(const std::string &label);
     static std::string extract_label(const std::string &label);
     static bool is_user_defined_var(const std::string &var);
-
+    static bool is_read_or_write(const tac_line &line);
+    
     inline bool operator==(tac_line const &rhs) const {
         return this->bid == rhs.bid;
     }

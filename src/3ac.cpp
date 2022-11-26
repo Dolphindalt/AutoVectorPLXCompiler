@@ -87,6 +87,10 @@ bool tac_line_t::is_user_defined_var(const std::string &var) {
     );
 }
 
+bool tac_line_t::is_read_or_write(const tac_line &line) {
+    return line.operation == TAC_WRITE || line.operation == TAC_READ;
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = std::to_string(tac.bid) + 
         ": " + tacOpToStringMap.at(tac.operation);

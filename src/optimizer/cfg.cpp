@@ -109,7 +109,9 @@ std::vector<NaturalLoop> CFG::computeNaturalLoops(
 
     for (auto e = backedges.begin(); e != backedges.end(); e++) {
         if (this->dominator.dominates(e->second, e->first)) {
-            loops.push_back(NaturalLoop(e->second, e->first, &this->reach));
+            loops.push_back(
+                NaturalLoop(e->second, e->first, &this->reach, &this->dominator)
+            );
         }
     }
 
