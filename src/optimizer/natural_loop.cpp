@@ -29,7 +29,6 @@ void NaturalLoop::forEachBBInBody(std::function<void(BBP)> action) {
  */
 void NaturalLoop::findInvariants() {
     this->invariants.clear();
-    this->instructionsWithInvariants.clear();
 
     std::set<std::string> definedOutside 
         = this->reach->getVariablesIntoBlock(this->getHeader());
@@ -52,41 +51,34 @@ void NaturalLoop::findInvariants() {
     while (changed) {
         changed = false;
 
-        for (const tac_line_t &line : this->getFooter()->getInstructions()) {
+        this->forEachBBInBody([&invariants, &constantsInside](BBP bb) {
+            for (const tac_line_t &line : bb->getInstructions()) {
             // Ignore labels and unconditional jumps.
             if (!tac_line_t::has_result(line)) {
                 continue;
             }
-            // Consider each operand.
 
-            bool operand1Conditions = this->isOperandInvariant(
-                line.argument1, 
-                this->getFooter(),
-                invariants,
-                definedOutside,
-                line.table
-            );
-
-            bool operand2Conditions = this->isOperandInvariant(
-                line.argument2, 
-                this->getFooter(),
-                invariants,
-                definedOutside,
-                line.table
-            );
-
-            if (operand1Conditions) {
-                invariants.insert(line.argument1);
+            // We need to be careful as the invariant definition from the 
+            // my textbook is not technically right. See
+            // https://www.cs.cmu.edu/~aplatzer/course/Compilers11/17-loopinv.pdf 
+            // for a better definition.
+            if (line.is_operand_constant(line.argument1) ||
+                constantsInside.count(line.argument1) > 0) {
+                    invariants.insert(line.argument1);
             }
 
-            if (operand2Conditions) {
+            if (line.is_operand_constant(line.argument2) ||
+                constantsInside.count(line.argument2) > 0) {
                 invariants.insert(line.argument2);
             }
 
-            if (operand1Conditions && operand2Conditions) {
-                invariants.insert(line.result);
+            if (invariants.count(line.argument1) && 
+                invariants.count(line.argument2)) {
+                    invariants.insert(line.result);
+                }
+
             }
-        }
+        });
 
         if (invariants != old) {
             changed = true;
@@ -99,19 +91,6 @@ void NaturalLoop::findInvariants() {
         INFO_LOG("%s", inv.c_str());
         this->invariants.insert(inv);
     }
-
-    for (const tac_line_t &instruction : this->getFooter()->getInstructions()) {
-        if (tac_line_t::has_result(instruction) && 
-            invariants.count(instruction.result) != 0) {
-                this->instructionsWithInvariants.insert(instruction);
-            }
-    }
-
-    INFO_LOG("Instructions with invariants: ");
-    for (auto inv : this->instructionsWithInvariants) {
-        INFO_LOG("%s", TACGenerator::tacLineToString(inv).c_str());
-    }
-
 }
 
 void NaturalLoop::findInductionVariables() {
@@ -144,6 +123,57 @@ void NaturalLoop::findInductionVariables() {
     for (auto str : this->inductionVariables) {
         INFO_LOG("%s", str.c_str());
     }
+
+    // It turns out that the simple induction variables are all I need.
+    // Wait, but to get the distance vectors, I need all induction variables
+    // on the iterator.
+    // Find more complex induction variables in the form W := A * X + B, where
+    // A and B are constants or loop invariants.
+    // Luckily, 3AC only allows for one operation, so we will be looking for
+    // W := X + B and W := A * X independently.
+    std::set<std::string> old = this->inductionVariables;
+
+    bool changed = true;
+    while (changed) {
+        changed = false;
+
+        // Find X within some expression.
+        this->forEachBBInBody([this](BBP bb) {
+            for (const tac_line_t &inst : bb->getInstructions()) {
+                
+                // Check for the addition and the multiplication.
+                if (inst.operation == TAC_ADD || inst.operation == TAC_SUB ||
+                    inst.operation == TAC_MULT || inst.operation == TAC_DIV) {
+
+                        // Consider the two cases
+                        // W := X op A
+                        if (this->isInductionVariable(inst.argument1) &&
+                            this->isInvariant(inst.argument2)) {
+                                this->inductionVariables.insert(inst.result);
+                            }
+                        // W := A op X
+                        if (this->isInductionVariable(inst.argument2) &&
+                            this->isInvariant(inst.argument1)) {
+                                this->inductionVariables.insert(inst.result);
+                            }
+                    }
+                
+                // For assignments in the form A = X, where X is an induction
+                // variable, A is also an induction variable.
+                if (inst.operation == TAC_ASSIGN) {
+                    if (this->isInductionVariable(inst.argument1)) {
+                        this->inductionVariables.insert(inst.result);
+                    }
+                }
+                
+            }
+        });
+
+        if (old != this->inductionVariables) {
+            changed = true;
+            old = this->inductionVariables;
+        }
+    }
 }
 
 bool NaturalLoop::isSimpleLoop() const {
@@ -163,37 +193,20 @@ bool NaturalLoop::isInvariant(const std::string &value) const {
     return this->invariants.count(value) > 0;
 }
 
+bool NaturalLoop::isInductionVariable(const std::string &value) const {
+    return this->inductionVariables.count(value) > 0;
+}
+
+bool NaturalLoop::isSimpleInductionVariable(const std::string &value) const {
+    return this->simpleInductionVariables.count(value) > 0;
+}
+
 const BBP NaturalLoop::getHeader() const {
     return this->header;
 }
 
 const BBP NaturalLoop::getFooter() const {
     return this->footer;
-}
-
-bool NaturalLoop::isOperandInvariant(
-    const std::string &operand,
-    const BBP bb,
-    const std::set<std::string> &invariants,
-    const std::set<std::string> &outsideDeclarations,
-    const std::shared_ptr<SymbolTable> &table
-) const {
-    unsigned int level;
-    st_entry_t entry;
-    bool success = table->lookup(operand, &level, &entry);
-
-    bool isConstant;
-
-    if (success) {
-        isConstant = entry.entry_type == ST_LITERAL || 
-            (entry.entry_type == ST_VARIABLE && entry.variable.isConstant);
-    }
-
-    return operand != "" &&
-        (bb->isVariableConstantInBB(operand) ||
-        outsideDeclarations.count(operand) == 1 ||
-        invariants.count(operand) == 1 ||
-        isConstant);
 }
 
 BBP NaturalLoop::findNextDommed(BBP bb) const {

@@ -91,6 +91,15 @@ bool tac_line_t::is_read_or_write(const tac_line &line) {
     return line.operation == TAC_WRITE || line.operation == TAC_READ;
 }
 
+bool tac_line_t::is_operand_constant(const std::string &value) const {
+    unsigned int level;
+    st_entry_t entry;
+    const bool success = this->table->lookup(value, &level, &entry);
+
+    return success && (entry.entry_type == ST_LITERAL || 
+        (entry.entry_type == ST_VARIABLE && entry.variable.isConstant));
+}
+
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {
     std::string result = std::to_string(tac.bid) + 
         ": " + tacOpToStringMap.at(tac.operation);
@@ -213,7 +222,7 @@ std::string TACGenerator::newTemp() {
 }
 
 std::string TACGenerator::newLabel() {
-    return "$L" + std::string("NO") + std::to_string(this->labelCounter++);
+    return "$Lno" + std::to_string(this->labelCounter++);
 }
 
 std::string TACGenerator::customLabel(std::string name) const {

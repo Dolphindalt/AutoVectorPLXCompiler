@@ -60,17 +60,13 @@ public:
 
     bool isInvariant(const std::string &value) const;
 
+    bool isInductionVariable(const std::string &value) const;
+
+    bool isSimpleInductionVariable(const std::string &value) const;
+
     const BBP getHeader() const;
     const BBP getFooter() const;
 private:
-    bool isOperandInvariant(
-        const std::string &operand,
-        const BBP bb,
-        const std::set<std::string> &invariants,
-        const std::set<std::string> &outsideDeclarations,
-        const std::shared_ptr<SymbolTable> &table
-    ) const;
-
     BBP findNextDommed(BBP bb) const;
 
     BBP header;
@@ -79,7 +75,6 @@ private:
     const Dominator *dom;
 
     std::set<std::string> invariants;
-    std::set<tac_line_t> instructionsWithInvariants;
     std::set<std::string> simpleInductionVariables;
     std::set<std::string> inductionVariables;
 };

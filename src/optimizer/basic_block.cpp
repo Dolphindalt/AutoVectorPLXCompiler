@@ -92,11 +92,6 @@ std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::getKillSet() const {
     return this->killed;
 }
 
-bool BasicBlock::isVariableConstantInBB(const std::string &varName) const {
-    // Declared variables within the block are in the variable assignments.
-    return this->variableAssignments.count(varName) != 0;
-}
-
 void BasicBlock::computeGenAndKillSets() {
     this->killed = TIDSet(this->localVariableDefinitions);
     for (

@@ -39,7 +39,6 @@ public:
     bool blockEndsWithUnconditionalJump() const;
     TIDSet getGenSet() const;
     TIDSet getKillSet() const;
-    bool isVariableConstantInBB(const std::string &varName) const;
 
     void computeGenAndKillSets();
 
