@@ -3,20 +3,22 @@
 #include <logging.h>
 
 RegisterTable::RegisterTable() {
-    for (auto i : registers) {
-        this->addressMap.insert(std::make_pair(i, false));
+    for (auto r : registers) {
+        this->containsAddressMap[r] = false;
     }
-    for (auto i : vectorRegisters) {
-        this->addressMap.insert(std::make_pair(i, false));
+    for (auto r : vectorRegisters) {
+        this->containsAddressMap[r] = false;
     }
 }
 
 void RegisterTable::updateRegisterValue(
     const reg_t &reg, 
-    const std::string &newValue
+    const std::string &newValue,
+    bool containsAddress=false
 ) {
     this->valueMap.insert(std::make_pair(reg, newValue));
     this->regMap.insert(std::make_pair(newValue, reg));
+    this->setContainsAddress(reg, containsAddress);
 }
 
 reg_t RegisterTable::getUsedRegister(const register_type_t type) const {
@@ -59,16 +61,26 @@ std::string RegisterTable::getRegisterValue(const reg_t &reg) const {
     return this->valueMap.at(reg);
 }
 
-void RegisterTable::updateRegisterContentType(const reg_t reg, bool isAddr) {
-    this->addressMap[reg] = isAddr;
-}
-
-bool RegisterTable::isRegisterHoldingAddress(const reg_t reg) const {
-    return this->addressMap.at(reg);
-}
-
 bool RegisterTable::isRegisterUnused(const reg_t &reg) const {
     return this->valueMap.count(reg) == 0;
+}
+
+void RegisterTable::freeRegister(const reg_t &reg) {
+    this->regMap.erase(this->valueMap.at(reg));
+    this->valueMap.erase(reg);
+    this->setContainsAddress(reg, false);
+}
+
+void RegisterTable::setContainsAddress(const reg_t &reg, bool value) {
+    this->containsAddressMap[reg] = value;
+}
+
+bool RegisterTable::containsAddress(const reg_t &reg) const {
+    return this->containsAddressMap.at(reg);
+}
+
+const std::map<reg_t, std::string> &RegisterTable::getValueMap() const {
+    return this->valueMap;
 }
 
 std::set<reg_t> RegisterTable::selectRegisters(

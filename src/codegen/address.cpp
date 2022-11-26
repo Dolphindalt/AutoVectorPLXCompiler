@@ -3,33 +3,48 @@
 #include <codegen/util.h>
 #include <logging.h>
 
+Address::Address(std::string offset) : type(A_M64), name("\%rbp"), 
+offset("0") {}
+
 Address::Address(address_type_t type, const std::string &name) 
-: type(type), name(name), offset(0) {}
+: type(type), name(name), offset("0") {}
 
 Address::Address(
-    address_type_t type, const std::string &name, unsigned int offset
+    address_type_t type, const std::string &name, const std::string &offset
 ) : type(type), name(name), offset(offset) {}
 
-const std::string Address::getAddressModeString(RegisterTable *regt) const {
+const std::string Address::address() const {
     switch (this->type) {
-        case A_REGISTER:
-            if (regt->isRegisterHoldingAddress(this->name)) {
-                return "(\%" + this->name + ")";
-            }
-            return "\%" + this->name;
-        case A_LITERAL:
+        case A_R64:
+            return this->name;
+        case A_RM64:
+            return "(" + this->name + ")";
+        case A_IMM64:
             return "$" + this->name;
-        case A_STACK:
-            if (this->offset == 0) {
-                return "(\%rbp)";
-            } else {
-                return int_to_hex(this->offset) + "(\%rbp)";
+        case A_M64:
+            // Dealing with the stack.
+            if (this->name == "\%rbp") {
+                if (this->offset == "0") {
+                    return "(\%rbp)";
+                } else {
+                    return int_to_hex(this->offset) + "(\%rbp)";
+                }
             }
-        case A_GLOBAL:
-            if (this->offset == 0) {
-                return this->name + "(\%rip)";
+
+            if (this->name.at(0) == '\%') {
+                // A register.
+                if (this->offset == "0") {
+                    return "(" + this->name + ")";
+                } else {
+                    return "(" + this->name + ", " + this->offset + ",8)";
+                }
+            }
+
+            // Dealing with global variables.
+            if (this->offset == "0") {
+                return this->name;
             } else {
-                return this->name + "(," + std::to_string(this->offset) + ", 8)";
+                return this->name + "(," + this->offset + ", 8)";
             }
         default:
             break;
@@ -40,11 +55,16 @@ const std::string Address::getAddressModeString(RegisterTable *regt) const {
 }
 
 const bool Address::isRegister() const {
-    return this->type == A_REGISTER;
+    return this->type & A_R64;
 }
 
 const bool Address::isMemoryAddress() const {
-    return this->type == A_GLOBAL;
+    return this->type & A_M64;
+}
+
+const bool Address::isGlobal() const {
+    return this->type == A_M64 && this->name.size() > 0 
+        && this->name.at(0) != '\%';
 }
 
 const std::string Address::getName() const {

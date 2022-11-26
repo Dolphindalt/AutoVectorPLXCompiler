@@ -5,34 +5,29 @@
 #include <codegen/descriptor_table.h>
 
 typedef enum address_type {
-    A_REGISTER,
-    A_LITERAL,
-    A_STACK,
-    A_GLOBAL
+    A_R64 = 0x01,
+    A_M64 = 0x02,
+    A_IMM64 = 0x04,
+    A_RM64 = 0x08
 } address_type_t;
 
 class Address {
 public:
+    Address(std::string offset);
     Address(address_type_t type, const std::string &name);
-    Address(address_type_t type, const std::string &name, unsigned int offset);
+    Address(
+        address_type_t type, const std::string &name, const std::string &offset
+    );
 
-    const std::string getAddressModeString(RegisterTable *regt) const;
+    const std::string address() const;
     const bool isRegister() const;
     const bool isMemoryAddress() const;
-
-    /**
-     * Returns the name field which acts differently depending on the contents 
-     * of the address.
-     * A_REGISTER: returns the register name.
-     * A_LITERAL: returns the literal value.
-     * A_STACK: returns the variable name on the stack.
-     * A_GLOBAL: returns the variable name in the data section. 
-     */
+    const bool isGlobal() const;
     const std::string getName() const;
 private:
     address_type_t type;
     std::string name;
-    unsigned int offset;
+    std::string offset;
 };
 
 #endif

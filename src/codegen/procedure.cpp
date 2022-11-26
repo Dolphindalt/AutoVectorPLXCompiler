@@ -3,9 +3,6 @@
 #include <logging.h>
 #include <assertions.h>
 
-#define PUSH(reg) this->asmFile->insertTextInstruction("\tpushq " reg)
-#define POP(reg) this->asmFile->insertTextInstruction("\tpopq " reg)
-
 DataSection Procedure::data;
 
 Procedure::Procedure(
@@ -75,33 +72,32 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_READ:
             break;
         case TAC_WRITE: {
-            Address thingToWrite = this->forceAddressIntoRegister(
+            Address thingToWrite = this->getLocation(
                 instruction.argument1,
                 instruction.table,
-                NORMAL,
                 instruction.bid
             );
 
-            // 8 pushes of 8 bytes = 64 bytes added to stack.
-            PUSH("\%rax");
-            PUSH("\%rcx");
-            PUSH("\%rdx");
-            PUSH("\%r9");
-            PUSH("\%r10");
-            PUSH("\%rsi");
-            PUSH("\%rdi");
+            // Push registers in use that are not perserved.
+            for (const reg_t &reg : registers) {
+                if (!this->regTable->isRegisterUnused(reg)) {
+                    this->asmFile->insertTextInstruction("\tpushq " + reg);
+                }
+            }
+
             this->asmFile->insertTextInstruction(
-                "\tmovq " + thingToWrite.getAddressModeString(this->regTable) +
-                    ", \%rdi"
+                "\tmovq " + thingToWrite.address() + ", \%rdi"
             );
             this->asmFile->insertTextInstruction("\tcall write_pl_0");
-            POP("\%rdi");
-            POP("\%rsi");
-            POP("\%r10");
-            POP("\%r9");
-            POP("\%rdx");
-            POP("\%rcx");
-            POP("\%rax");
+
+            // Pop registers that are not perserved.
+            for (auto i = registers.rbegin(); i != registers.rend(); i++) {
+                const reg_t &reg = *i;
+                if (!this->regTable->isRegisterUnused(reg)) {
+                    this->asmFile->insertTextInstruction("\tpopq " + reg);
+                }
+            }
+
             break;
         }
         case TAC_LABEL:
@@ -179,8 +175,7 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
                 );
                 // Produce the instruction.
                 this->asmFile->insertTextInstruction(
-                    "\tmovq " + op1.getAddressModeString(this->regTable) + ", " 
-                        + result.getAddressModeString(this->regTable) 
+                    "\tmovq " + op1.address() + ", " + result.address() 
                 );
             }
             break;
@@ -201,7 +196,7 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             // This means that operand1 must be a register.
             reg_t reg = op1.getName();
 
-            if (!op1.isRegister()) {
+            if (!op1.isRegister() && !op1.isGlobal()) {
                 reg = this->getRegister(
                     instruction.argument1, 
                     instruction.table, 
@@ -209,20 +204,24 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
                     instruction.bid
                 );
                 this->asmFile->insertTextInstruction(
-                    "\tmovq " + op1.getAddressModeString(this->regTable) + 
-                        ", \%" + reg
+                    "\tmovq " + op1.address() + ", " + reg
                 );
             }
 
             // Operand1 is also the result. We will say the result is 
             // in the selected register as a result.
-            INFO_LOG("op1 name %s", reg.c_str());
-            this->regTable->updateRegisterValue(reg, instruction.result);
+            this->regTable->updateRegisterValue(reg, instruction.result, false);
 
             this->asmFile->insertTextInstruction(
-                "\taddq " + op2.getAddressModeString(this->regTable) + 
-                    ", \%" + reg
+                "\taddq " + op2.address() + ", " + reg
             );
+
+            if (Procedure::data.isVariableInDataSection(instruction.argument1)) {
+                // Update the value in the data segment.
+                this->asmFile->insertTextInstruction(
+                    "\tmovq " + reg + ", " + instruction.argument1
+                );
+            }
 
             break;
         }
@@ -240,10 +239,9 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_NOT_EQUALS: {
             // Two cases. Comparing for a control flow or storing the result.
             // For the control flow.
-            Address operand1 = this->forceAddressIntoRegister(
+            Address operand1 = this->getLocation(
                 instruction.argument1,
                 instruction.table,
-                NORMAL,
                 instruction.bid
             );
             const Address operand2 = this->getLocation(
@@ -253,8 +251,7 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             );
 
             this->asmFile->insertTextInstruction(
-                "\tcmpq " + operand2.getAddressModeString(this->regTable) + 
-                    ", " + operand1.getAddressModeString(this->regTable)
+                "\tcmpq " + operand2.address() + ", " + operand1.address()
             );
             if (instruction.result != "") {
                 reg_t resReg = this->getRegister(
@@ -263,44 +260,27 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
                     NORMAL, 
                     instruction.bid
                 );
-                this->asmFile->insertTextInstruction("setq \%" + resReg);
+                this->asmFile->insertTextInstruction("setq " + resReg);
             }
             break;
         }
         case TAC_ARRAY_INDEX: {
-            Address array = this->getLocation(
+            Address array = this->forceAddressIntoRegister(
                 instruction.argument1,
                 instruction.table,
-                instruction.bid
+                NORMAL,
+                instruction.bid,
+                true
             );
             Address index = this->forceAddressIntoRegister(
                 instruction.argument2,
                 instruction.table,
                 NORMAL,
-                instruction.bid
-            );
-            reg_t result = this->getRegister(
-                instruction.result, 
-                instruction.table,
-                NORMAL,
-                instruction.bid
+                instruction.bid,
+                false
             );
 
-            reg_t temp = this->getRegister(
-                instruction.result,
-                instruction.table,
-                NORMAL,
-                instruction.bid
-            );
-
-            // Load the address of array + offset into temp.
-            this->asmFile->insertTextInstruction(
-                "\tleaq " + instruction.argument1 + 
-                    "(," + index.getAddressModeString(this->regTable) 
-                    + ",8), \%" + temp
-            );
-            this->regTable->updateRegisterValue(temp, instruction.result);
-            this->regTable->updateRegisterContentType(temp, true);
+            this->insertArrayVariable(instruction.result, array, index);
 
             break;
         }
@@ -330,26 +310,38 @@ Address Procedure::getLocation(
     // First, see if the value is a literal, which is in the text section.
     if (sym_entry.entry_type == ST_LITERAL) {
         // This is a literal.
-        return Address(A_LITERAL, value);
+        return Address(A_IMM64, value);
     }
 
     // Maybe the value is in a register.
     bool isValueInReg = this->regTable->isValueInRegister(value);
     if (isValueInReg) {
         std::string registerName = this->regTable->getRegisterWithValue(value);
-        return Address(A_REGISTER, registerName);
+
+        // Registers containing addresses must be indexed properly.
+        if (this->regTable->containsAddress(registerName)) {
+            return Address(A_RM64, registerName);
+        }
+
+        return Address(A_R64, registerName);
     }
 
     // If the value is not in a register, it may be in stack memory.
     if (this->stack.isVaribleInStack(value)) {
         unsigned int stackOffset = this->stack.findVariableInStack(value);
-        return Address(A_STACK, value, stackOffset);
+        return Address(std::to_string(stackOffset));
     }
 
     // If the value is not in a register or stack memory, it must be in
     // global memory.
     if (Procedure::data.isVariableInDataSection(value)) {
-        return Address(A_GLOBAL, value);
+        return Address(A_M64, value);
+    }
+
+    if (this->isVariableInArray(value)) {
+        array_index_t av = this->getArrayIndex(value);
+        this->removeArrayVariable(value);
+        return Address(A_M64, av.array.address(), av.index.address());
     }
 
     // User defined variables need to be put into registers and never stored
@@ -357,8 +349,8 @@ Address Procedure::getLocation(
     // user defined variables are in memory by default.
     if (!tac_line_t::is_user_defined_var(value)) {
         reg_t reg = this->getRegister(value, symTable, NORMAL, tid);
-        this->regTable->updateRegisterValue(reg, value);
-        return Address(A_REGISTER, reg);
+        this->regTable->updateRegisterValue(reg, value, false);
+        return Address(A_R64, reg);
     }
 
     return this->allocateMemory(value, symTable);
@@ -388,23 +380,19 @@ reg_t Procedure::getRegister(
     INFO_LOG("Liveness: is_dead %d no next use %d", isDead, noNextUse);
 
     if (isValueInReg && noNextUse && isDead) {
-        reg_t toReturn = this->regTable->getRegisterWithValue(value);
-        this->regTable->updateRegisterContentType(toReturn, false);
-        return toReturn;
+        return this->regTable->getRegisterWithValue(value);
     } else if (this->regTable->getUnusedRegister(type) != NO_REGISTER) {
-        reg_t toReturn = this->regTable->getUnusedRegister(type);
-        this->regTable->updateRegisterContentType(toReturn, false);
-        return toReturn;
+        return this->regTable->getUnusedRegister(type);
     } else {
         // Select an occupied register.
         reg_t unlucky = this->regTable->getUnusedRegister(type);
+
         // Generate an instruction to store its value on the stack.
         std::string variableHeld = this->regTable->getRegisterValue(unlucky);
         unsigned int offset = this->stack
             .insertVariableIntoStack(variableHeld, VARIABLE_SIZE_BYTES);
         this->generateStackStore(offset, unlucky);
-        // Update the descriptors and return the register.
-        this->regTable->updateRegisterContentType(unlucky, false);
+
         return unlucky;
     }
 
@@ -425,14 +413,14 @@ Address Procedure::allocateMemory(
         unsigned int offset = 
             this->stack.insertVariableIntoStack(value, VARIABLE_SIZE_BYTES);
         // is 8 bytes.
-        return Address(A_STACK, value, offset);
+        return Address(std::to_string(offset));
     } else {
         if (sym_entry.variable.isArray) {
             Procedure::data.insert(value, sym_entry.variable.arraySize);
         } else {
             Procedure::data.insert(value, VARIABLE_SIZE_BYTES);
         }
-        return Address(A_GLOBAL, value);
+        return Address(A_M64, value);
     }
 }
 
@@ -519,20 +507,46 @@ Address Procedure::forceAddressIntoRegister(
     const std::string &value,
     std::shared_ptr<SymbolTable> symTable,
     register_type_t type,
-    const TID instID
+    const TID instID,
+    bool isAddress=false
 ) {
     Address operand = this->getLocation(value, symTable, instID);
     if (!operand.isRegister()) {
         reg_t reg = this->getRegister(value, symTable, type, instID);
-        this->asmFile->insertTextInstruction(
-            "\tmovq " + operand.getAddressModeString(this->regTable) + 
-            ", \%" + reg
-        );
-        this->regTable->updateRegisterContentType(
-            reg, this->regTable->isRegisterHoldingAddress(reg)
-        );
-        this->regTable->updateRegisterValue(reg, value);
+
+        if (!isAddress) {
+            this->asmFile->insertTextInstruction(
+                "\tmovq " + operand.address() + ", " + reg
+            );
+        } else {
+            this->asmFile->insertTextInstruction(
+                "\tleaq " + operand.address() + ", " + reg
+            );
+        }
+
+        this->regTable->updateRegisterValue(reg, value, false);
         operand = this->getLocation(value, symTable, instID);
     }
     return operand;
+}
+
+void Procedure::insertArrayVariable(
+    const std::string &name, 
+    const Address &array, 
+    const Address &index
+) {
+    const array_index_t vardiac = { array, index };
+    this->arrayVariable.insert(std::make_pair(name, vardiac));
+}
+
+void Procedure::removeArrayVariable(const std::string &name) {
+    this->arrayVariable.erase(name);
+}
+
+bool Procedure::isVariableInArray(const std::string &name) const {
+    return this->arrayVariable.count(name) > 0;
+}
+
+array_index_t Procedure::getArrayIndex(const std::string &name) const {
+    return this->arrayVariable.at(name);
 }

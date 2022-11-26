@@ -9,6 +9,11 @@
 #include <codegen/address.h>
 #include <codegen/util.h>
 
+typedef struct array_index {
+    Address array;
+    Address index;
+} array_index_t;
+
 class Procedure {
 public:
     static DataSection data;
@@ -62,8 +67,18 @@ private:
         const std::string &value,
         std::shared_ptr<SymbolTable> symTable,
         register_type_t type,
-        const TID instID
+        const TID instID,
+        bool isAddress
     );
+
+    void insertArrayVariable(
+        const std::string &name, 
+        const Address &array, 
+        const Address &index
+    );
+    void removeArrayVariable(const std::string &name);
+    bool isVariableInArray(const std::string &name) const; 
+    array_index_t getArrayIndex(const std::string &name) const;
 
     AsmFile *asmFile;
     SymbolTable *cgTable;
@@ -73,6 +88,8 @@ private:
     bool isMain;
     unsigned int functionPrelog;
     unsigned int stackSize;
+
+    std::map<std::string, array_index_t> arrayVariable; 
 };
 
 #endif

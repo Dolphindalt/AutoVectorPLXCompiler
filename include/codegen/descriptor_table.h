@@ -15,63 +15,72 @@ typedef enum register_type {
 } register_type_t;
 
 static std::set<reg_t> registers = {
-    "rcx",
-    "rdx",
-    "rsi",
-    "rdi",
-    "r8",
-    "r9",
-    "r10",
-    "r11",
-    "r12",
-    "r13",
-    "r14",
-    "r15",
-    "rax"
+    "\%rcx",
+    "\%rdx",
+    "\%rsi",
+    "\%rdi",
+    "\%r8",
+    "\%r9",
+    "\%r10",
+    "\%r11",
+    "\%r12",
+    "\%r13",
+    "\%r14",
+    "\%r15",
+    "\%rax"
 };
 
 static std::set<reg_t> vectorRegisters = {
-    "ymm0",
-    "ymm1",
-    "ymm2",
-    "ymm3",
-    "ymm4",
-    "ymm5",
-    "ymm6",
-    "ymm7",
-    "ymm8",
-    "ymm9",
-    "ymm10",
-    "ymm11",
-    "ymm12",
-    "ymm13",
-    "ymm14",
-    "ymm15"
+    "\%ymm0",
+    "\%ymm1",
+    "\%ymm2",
+    "\%ymm3",
+    "\%ymm4",
+    "\%ymm5",
+    "\%ymm6",
+    "\%ymm7",
+    "\%ymm8",
+    "\%ymm9",
+    "\%ymm10",
+    "\%ymm11",
+    "\%ymm12",
+    "\%ymm13",
+    "\%ymm14",
+    "\%ymm15"
 };
 
 class RegisterTable {
 public:
     RegisterTable();
 
-    void updateRegisterValue(const reg_t &reg, const std::string &newValue);
+    void updateRegisterValue(
+        const reg_t &reg, 
+        const std::string &newValue,
+        bool containsAddress
+    );
 
     reg_t getUsedRegister(const register_type_t type) const;
     reg_t getUnusedRegister(const register_type_t type) const;
     reg_t getRegisterWithValue(const std::string &value) const;
     bool isValueInRegister(const std::string &value) const;
     bool doesRegisterContainValue(const reg_t &reg) const;
+
     std::string getRegisterValue(const reg_t &reg) const;
 
-    void updateRegisterContentType(const reg_t reg, bool isAddr);
-    bool isRegisterHoldingAddress(const reg_t reg) const;
-
     bool isRegisterUnused(const reg_t &reg) const;
+
+    void freeRegister(const reg_t &reg);
+
+    void setContainsAddress(const reg_t &reg, bool value);
+    bool containsAddress(const reg_t &reg) const;
+
+    const std::map<reg_t, std::string> &getValueMap() const;
 private:
     std::set<reg_t> selectRegisters(const register_type_t type) const;
 
     std::map<reg_t, std::string> valueMap;
     std::map<std::string, reg_t> regMap;
-    std::map<reg_t, bool> addressMap;
+    std::map<reg_t, bool> containsAddressMap;
 };
 
 // For this simple language, all variables are 8 bytes, excluding arrays.
