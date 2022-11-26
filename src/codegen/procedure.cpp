@@ -180,6 +180,7 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             }
             break;
         }
+        case TAC_SUB:
         case TAC_ADD: {
             Address op1 = this->getLocation(
                 instruction.argument1, 
@@ -212,8 +213,13 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
             // in the selected register as a result.
             this->regTable->updateRegisterValue(reg, instruction.result, false);
 
+            std::string num = "\taddq ";
+            if (instruction.operation == TAC_SUB) {
+                num = "\tsubq ";
+            }
+
             this->asmFile->insertTextInstruction(
-                "\taddq " + op2.address() + ", " + reg
+                num + op2.address() + ", " + reg
             );
 
             if (Procedure::data.isVariableInDataSection(instruction.argument1)) {
@@ -225,8 +231,6 @@ void Procedure::generateAssemblyFromTAC(const tac_line_t &instruction) {
 
             break;
         }
-        case TAC_SUB:
-            break;
         case TAC_DIV:
             break;
         case TAC_MULT:
