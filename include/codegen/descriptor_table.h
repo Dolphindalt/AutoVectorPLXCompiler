@@ -74,6 +74,11 @@ public:
     void setContainsAddress(const reg_t &reg, bool value);
     bool containsAddress(const reg_t &reg) const;
 
+    void setRegisterWasUpdated(const reg_t &reg);
+    bool isRegisterUpdated(const reg_t &reg) const;
+
+    const std::set<reg_t> getRegistersInUse(const register_type_t type) const;
+
     const std::map<reg_t, std::string> &getValueMap() const;
 private:
     std::set<reg_t> selectRegisters(const register_type_t type) const;
@@ -81,6 +86,7 @@ private:
     std::map<reg_t, std::string> valueMap;
     std::map<std::string, reg_t> regMap;
     std::map<reg_t, bool> containsAddressMap;
+    std::map<reg_t, bool> updatedMap;
 };
 
 // For this simple language, all variables are 8 bytes, excluding arrays.
@@ -93,8 +99,13 @@ public:
         const unsigned int size_bytes
     );
     unsigned int findVariableInStack(const std::string &name) const;
+    unsigned int findVariableInStack(
+        const std::string &name, 
+        const unsigned int basePointer
+    ) const;
     bool isVaribleInStack(const std::string &name) const;
     const unsigned int getStackSize() const;
+    const unsigned int getStackSize(unsigned int basePointer) const;
 private:
     unsigned int stackPointer = 0;
     std::map<std::string, unsigned int> variableStackOffset;

@@ -11,6 +11,8 @@
 class Optimizer {
 public:
     Optimizer(std::vector<tac_line_t> &instructions);
+
+    BlockSet &getBlocks();
 private:
     Preprocessor preprocessor;
     Blocker blocker;

@@ -55,7 +55,7 @@ private:
     AST parseTerm();
     AST parseTermTail();
     AST parseFactor();
-    AST parseNumber();
+    std::shared_ptr<NumberAST> parseNumber();
     AST parseVariable();
     void parseType(type_t *type, bool *is_array, unsigned int *array_size);
 

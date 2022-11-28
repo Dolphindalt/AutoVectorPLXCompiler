@@ -4,6 +4,7 @@
 #include <map>
 #include <3ac.h>
 #include <symbol_table.h>
+#include <optimizer/basic_block.h>
 
 typedef struct liveness_pair {
     liveness_t liveness = CG_DEAD;
@@ -18,11 +19,18 @@ typedef struct liveness_info {
 
 class LivenessInfoTable {
 public:
-    LivenessInfoTable();
+    LivenessInfoTable() {};
+    LivenessInfoTable(BBP bb);
 
     liveness_info_t get(const TID instructionID) const;
     void insert(const TID instructionID, const liveness_info_t &info);
 private:
+    void populateSymbolTableDefaults(BBP &bb);
+    void initVariableInTable(const std::string &variable);
+    void computeLiveness();
+
+    BBP bb;
+    SymbolTable sym;
     std::map<TID, liveness_info_t> livenessMap;
 };
 

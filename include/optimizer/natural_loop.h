@@ -11,6 +11,32 @@
 using address = std::string;
 
 /**
+ * Represents induction variables in the two forms
+ * X := X + C if is simple
+ * or
+ * W := A * X or W := X + B if not simple
+ */
+typedef struct induction_variable {
+public:
+    bool is_simple;
+    std::string inductionVar;
+    std::string constant;
+    struct induction_variable *previousInductionVar;
+
+    induction_variable(
+        bool is_simple, 
+        std::string inductionVar, 
+        std::string constant,
+        struct induction_variable *previous
+    ) : is_simple(is_simple), inductionVar(inductionVar), constant(constant), 
+        previousInductionVar(previous) {}
+    
+    inline bool operator==(const induction_variable &rhs) const {
+        return this->inductionVar == rhs.inductionVar;
+    }
+} induction_variable_t;
+
+/**
  * A natural loop is defined as the smallest set of nodes in which the back 
  * edge is included with no predecessors outside of the set except for
  * the predecessor of the header.
@@ -47,14 +73,34 @@ public:
      * X := X + C
      * X := X - C
      * An induction variable is a linear function of some induction variable.
+     * More complex induction variables take on the following form
+     * W := A * X + B
+     * This is split into two definitions.
+     * W := A * X
+     * W := X + B
      */
     void findInductionVariables();
+
+    /**
+     * The loop iterator is a simple induction variable (in the form X := X + C) 
+     * where the constant is 1 AND the variable is used within the loop header
+     * to compute the condition. If multiple variables satisy these conditions 
+     * or a loop iterator could not be found, this function returns false.
+     * 
+     * @param varNameOut The name of the iterator variable, if found.
+     * @return False if multiple iterators exist or an iterator is not found.
+     */
+    bool identifyLoopIterator(std::string &varNameOut) const;
 
     /** 
      * A simple loop has its header as a predecessor and successor of the 
      * footer. If the loop is an outer loop in a loop nesting, then the header 
      * has the footer as a predecessor and the header has the inner loop header
      * as a successor.
+     * 
+     * This simplifies the kinds of loops that will be considered for 
+     * optimizations by eliminating loops with conditional statements and 
+     * loops that require intraprocedural analysis.
      */
     bool isSimpleLoop() const;
 
@@ -66,6 +112,8 @@ public:
 
     const BBP getHeader() const;
     const BBP getFooter() const;
+
+    const std::string to_string() const;
 private:
     BBP findNextDommed(BBP bb) const;
 
@@ -75,8 +123,8 @@ private:
     const Dominator *dom;
 
     std::set<std::string> invariants;
-    std::set<std::string> simpleInductionVariables;
-    std::set<std::string> inductionVariables;
+    std::map<std::string, induction_variable_t> simpleInductionVariables;
+    std::map<std::string, induction_variable_t> inductionVariables;
 };
 
 #endif

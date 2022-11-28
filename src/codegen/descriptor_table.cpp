@@ -5,9 +5,11 @@
 RegisterTable::RegisterTable() {
     for (auto r : registers) {
         this->containsAddressMap[r] = false;
+        this->updatedMap[r] = false;
     }
     for (auto r : vectorRegisters) {
         this->containsAddressMap[r] = false;
+        this->updatedMap[r] = false;
     }
 }
 
@@ -69,6 +71,7 @@ void RegisterTable::freeRegister(const reg_t &reg) {
     this->regMap.erase(this->valueMap.at(reg));
     this->valueMap.erase(reg);
     this->setContainsAddress(reg, false);
+    this->updatedMap[reg] = false;
 }
 
 void RegisterTable::setContainsAddress(const reg_t &reg, bool value) {
@@ -77,6 +80,41 @@ void RegisterTable::setContainsAddress(const reg_t &reg, bool value) {
 
 bool RegisterTable::containsAddress(const reg_t &reg) const {
     return this->containsAddressMap.at(reg);
+}
+
+void RegisterTable::setRegisterWasUpdated(const reg_t &reg) {
+    this->updatedMap[reg] = true;
+}
+
+bool RegisterTable::isRegisterUpdated(const reg_t &reg) const {
+    return this->updatedMap.at(reg);
+}
+
+const std::set<reg_t> RegisterTable::getRegistersInUse(
+    const register_type_t type
+) const {
+    std::set<reg_t> regSet;
+
+    switch (type) {
+        case NORMAL:
+            regSet = registers;
+            break;
+        case AVX:
+            regSet = vectorRegisters;
+            break;
+        default:
+            ERROR_LOG("invalid register type");
+            exit(EXIT_FAILURE);
+    }
+
+    std::set<reg_t> result;
+    for (const reg_t &reg : regSet) {
+        if (!this->isRegisterUnused(reg)) {
+            result.insert(reg);
+        }
+    }
+
+    return result;
 }
 
 const std::map<reg_t, std::string> &RegisterTable::getValueMap() const {
@@ -115,12 +153,23 @@ unsigned int AddressTable::findVariableInStack(const std::string &name) const {
     return this->variableStackOffset.at(name);
 }
 
+unsigned int AddressTable::findVariableInStack(
+    const std::string &name, 
+    const unsigned int basePointer
+) const {
+    return this->findVariableInStack(name) + basePointer;
+}
+
 bool AddressTable::isVaribleInStack(const std::string &name) const {
     return this->variableStackOffset.count(name) > 0;
 }
 
 const unsigned int AddressTable::getStackSize() const {
     return this->stackPointer;
+}
+
+const unsigned int AddressTable::getStackSize(unsigned int basePointer) const {
+    return this->stackPointer - basePointer;
 }
 
 DataSection::DataSection() {}

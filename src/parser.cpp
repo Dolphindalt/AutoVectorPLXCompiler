@@ -122,7 +122,12 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(identifier, IDENTIFIER);
     this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
-    EASTPtr number = this->parseNumber();
+    std::shared_ptr<NumberAST> number = this->parseNumber();
+
+    unsigned int level;
+    st_entry_t number_info;
+    this->currentScope()->lookup(number->name, &level, &number_info);
+    ASSERT(number_info.entry_type == ST_LITERAL);
 
     st_entry_t type_info;
     type_info.entry_type = ST_VARIABLE;
@@ -130,6 +135,7 @@ void Parser::parseConstDeclarations(std::shared_ptr<ExprListAST> parent) {
     type_info.variable.isAssigned = true;
     type_info.variable.isArray = is_array;
     type_info.variable.arraySize = array_size;
+    type_info.variable.value = number_info.literal.value;
     type_info.variable.type = type;
     type_info.token = identifier;
 
@@ -177,7 +183,12 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     this->tryMatchTerminal(identifier, IDENTIFIER);
     this->tryMatchTerminal(this->getNextToken(), EQUALS);
 
-    EASTPtr number = this->parseNumber();
+    std::shared_ptr<NumberAST> number = this->parseNumber();
+
+    unsigned int level;
+    st_entry_t number_info;
+    this->currentScope()->lookup(number->name, &level, &number_info);
+    ASSERT(number_info.entry_type == ST_LITERAL);
 
     st_entry_t type_info;
     type_info.entry_type = ST_VARIABLE;
@@ -186,6 +197,7 @@ void Parser::parseConstDeclarationList(std::shared_ptr<ExprListAST> parent) {
     type_info.variable.isArray = is_array;
     type_info.variable.arraySize = array_size;
     type_info.variable.type = type;
+    type_info.variable.value = number_info.literal.value;
     type_info.token = identifier;
 
     EASTPtr variable = std::make_shared<VariableAST>(
@@ -776,19 +788,19 @@ AST Parser::parseFactor() {
     return nullptr;
 }
 
-AST Parser::parseNumber() {
+std::shared_ptr<NumberAST> Parser::parseNumber() {
     token_t next = this->getNextToken();
 
     bool is_unary = false;
-    operation_t unary_op;
+    token_t unary_token;
 
     if (next.type == ADD_OP) {
         this->tryMatchTerminal(next, ADD_OP);
-        unary_op = cmpOpMap.at(next.lexeme);
+        unary_token = next;
         next = this->getNextToken();
     }
 
-    EASTPtr number;
+    std::shared_ptr<NumberAST> number;
 
     st_entry_t typeInfo;
     typeInfo.entry_type = ST_LITERAL;
@@ -831,18 +843,25 @@ AST Parser::parseNumber() {
             });
     }
 
-    this->currentScope()->insert(next.lexeme, typeInfo);
-
     if (is_unary) {
-        return std::make_shared<UnaryExprAST>(
-            this->currentScope(),
-            unary_op, 
-            number,
-            next.file,
-            next.line,
-            next.column
-        );
+
+        if (unary_token.type == ODD_OP) {
+            if (typeInfo.literal.type == INT) {
+                typeInfo.literal.value.int_value &= 0x01;
+            } else if (typeInfo.literal.type == FLOAT) {
+                int64_t temp = typeInfo.literal.value.float_value;
+                typeInfo.literal.value.float_value = temp & 0x01;
+            }
+        } else if (unary_token.type == ADD_OP && unary_token.lexeme == "-") {
+            if (typeInfo.literal.type == INT) {
+                typeInfo.literal.value.int_value = -typeInfo.literal.value.int_value;
+            } else if (typeInfo.literal.type == FLOAT) {
+                typeInfo.literal.value.float_value = -typeInfo.literal.value.float_value;
+            }
+        }
     }
+
+    this->currentScope()->insert(next.lexeme, typeInfo);
 
     return number;
 }

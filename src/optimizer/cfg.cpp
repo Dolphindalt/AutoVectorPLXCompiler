@@ -1,5 +1,7 @@
 #include <optimizer/cfg.h>
 
+#include <optimizer/loop_vectorizer.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <logging.h>
@@ -22,6 +24,13 @@ CFG::CFG(std::string &name, BBP firstBlock) : name(name),
             printf("(%d, %d)\n", p.getHeader()->getID(), p.getFooter()->getID());
         }
         printf("Reach Analysis\n%s\n", this->reach.to_string().c_str());
+
+        #ifdef AUTOMATIC_VECTORIZATION_ENABLED
+        for (NaturalLoop &loop : nloops) {
+            LoopVectorizer(loop).vectorize();
+        }
+        #endif
+
     }
 
 BBP CFG::getEntryBlock() const {

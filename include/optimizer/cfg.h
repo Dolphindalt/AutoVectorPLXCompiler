@@ -10,6 +10,8 @@
 #include <string>
 #include <functional>
 
+#define AUTOMATIC_VECTORIZATION_ENABLED 1
+
 class CFG {
 public:
     CFG();

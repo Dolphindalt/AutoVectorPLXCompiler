@@ -50,7 +50,7 @@ typedef enum liveness {
 } liveness_t;
 
 typedef union literal_value {
-    uint64_t int_value;
+    int64_t int_value;
     _Float64 float_value;
 } literal_value_t;
 

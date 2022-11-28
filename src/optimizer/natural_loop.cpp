@@ -26,6 +26,8 @@ void NaturalLoop::forEachBBInBody(std::function<void(BBP)> action) {
  * a. Are constant. OR
  * b. Are defined outside the loop. OR
  * c. Are defined by some invariant in the same loop.
+ * 
+ * Revised this definition below.
  */
 void NaturalLoop::findInvariants() {
     this->invariants.clear();
@@ -106,14 +108,24 @@ void NaturalLoop::findInductionVariables() {
                 if (inst.result == inst.argument1 && 
                     this->isInvariant(inst.argument2)) {
                         // X is an induction variable.
-                        this->simpleInductionVariables.insert(inst.result);
-                        this->inductionVariables.insert(inst.result);
+                        induction_variable_t var(
+                            true, inst.result, inst.argument2, nullptr
+                        );
+                        this->simpleInductionVariables.insert(
+                            std::make_pair(inst.result, var));
+                        this->inductionVariables
+                            .insert(std::make_pair(inst.result, var));
                     }
                 // X := C op X
                 if (inst.result == inst.argument2 && 
                     this->isInvariant(inst.argument1)) {
-                        this->simpleInductionVariables.insert(inst.result);
-                        this->inductionVariables.insert(inst.result);
+                        induction_variable_t var(
+                            true, inst.result, inst.argument1, nullptr
+                        );
+                        this->simpleInductionVariables.insert(
+                            std::make_pair(inst.result, var));
+                        this->inductionVariables
+                            .insert(std::make_pair(inst.result, var));
                     }
             }
         }
@@ -121,7 +133,7 @@ void NaturalLoop::findInductionVariables() {
 
     INFO_LOG("Found simple induction variables: ");
     for (auto str : this->inductionVariables) {
-        INFO_LOG("%s", str.c_str());
+        INFO_LOG("%s", str.first.c_str());
     }
 
     // It turns out that the simple induction variables are all I need.
@@ -131,7 +143,7 @@ void NaturalLoop::findInductionVariables() {
     // A and B are constants or loop invariants.
     // Luckily, 3AC only allows for one operation, so we will be looking for
     // W := X + B and W := A * X independently.
-    std::set<std::string> old = this->inductionVariables;
+    std::map<std::string, induction_variable_t> old = this->inductionVariables;
 
     bool changed = true;
     while (changed) {
@@ -149,12 +161,22 @@ void NaturalLoop::findInductionVariables() {
                         // W := X op A
                         if (this->isInductionVariable(inst.argument1) &&
                             this->isInvariant(inst.argument2)) {
-                                this->inductionVariables.insert(inst.result);
+                                induction_variable_t var = induction_variable_t(
+                                    false, inst.result, inst.argument2, 
+                                    &this->inductionVariables.at(inst.argument1)
+                                );
+                                this->inductionVariables
+                                    .insert(std::make_pair(inst.result, var));
                             }
                         // W := A op X
                         if (this->isInductionVariable(inst.argument2) &&
                             this->isInvariant(inst.argument1)) {
-                                this->inductionVariables.insert(inst.result);
+                                induction_variable_t var = induction_variable_t(
+                                    false, inst.result, inst.argument1, 
+                                    &this->inductionVariables.at(inst.argument2)
+                                );
+                                this->inductionVariables
+                                    .insert(std::make_pair(inst.result, var));
                             }
                     }
                 
@@ -162,7 +184,14 @@ void NaturalLoop::findInductionVariables() {
                 // variable, A is also an induction variable.
                 if (inst.operation == TAC_ASSIGN) {
                     if (this->isInductionVariable(inst.argument1)) {
-                        this->inductionVariables.insert(inst.result);
+                        induction_variable_t &old = this->inductionVariables
+                            .at(inst.argument1);
+                        induction_variable_t var = induction_variable_t(
+                            old.is_simple, inst.result, old.constant, &old
+                        );
+                        this->inductionVariables.insert(
+                            std::make_pair(inst.result, var)
+                        );
                     }
                 }
                 
@@ -177,8 +206,38 @@ void NaturalLoop::findInductionVariables() {
 
     INFO_LOG("Found induction variables: ");
     for (auto str : this->inductionVariables) {
-        INFO_LOG("%s", str.c_str());
+        INFO_LOG("%s", str.first.c_str());
     }
+}
+
+bool NaturalLoop::identifyLoopIterator(std::string &varNameOut) const {
+    // TODO: This needs to be made more sophisticated to detect more a wider
+    // range of loop classes. We will detect candidate induction variables 
+    // that are DIRECT operands in the loop header.
+
+    bool foundOne = false;
+
+    for (const tac_line_t &inst : this->header->getInstructions()) {
+        if (tac_line_t::is_comparision(inst)) {
+
+            if (this->isSimpleInductionVariable(inst.argument1)) {
+                if (!foundOne) {
+                    foundOne = true;
+                    varNameOut = inst.argument1;
+                } else return false;
+            }
+
+            if (this->isSimpleInductionVariable(inst.argument2)) {
+                if (!foundOne) {
+                    foundOne = true;
+                    varNameOut = inst.argument2;
+                } else return false;
+            }
+
+        }
+    }
+
+    return foundOne;
 }
 
 bool NaturalLoop::isSimpleLoop() const {
@@ -212,6 +271,11 @@ const BBP NaturalLoop::getHeader() const {
 
 const BBP NaturalLoop::getFooter() const {
     return this->footer;
+}
+
+const std::string NaturalLoop::to_string() const {
+    return "(" + std::to_string(this->getHeader()->getID()) + ", " + 
+        std::to_string(this->getFooter()->getID()) + ")";
 }
 
 BBP NaturalLoop::findNextDommed(BBP bb) const {

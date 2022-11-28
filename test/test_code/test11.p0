@@ -1,0 +1,16 @@
+var int i, int[100] a, int[100] b;
+begin
+    i := 0;
+    while i < 100 do
+    begin
+        b[i] := i + 10;
+        i := i + 1
+    end;
+    i := 0;
+    while i < 100 do
+    begin
+        a[i] := b[i] * 5;
+        i := i + 1
+    end;
+    !a[i-1];
+end.

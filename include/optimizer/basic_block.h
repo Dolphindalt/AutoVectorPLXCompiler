@@ -18,6 +18,7 @@ using TIDSet = std::set<tac_line_t, decltype(set_id_cmp)>;
 
 class BasicBlock {
 public:
+    static unsigned int functionCount;
     static TIDSet globalVarDefinitions;
 
     BasicBlock();
@@ -33,12 +34,16 @@ public:
     const std::vector<BBP> &getPredecessors();
 
     unsigned int getID() const;
+    unsigned int getMinorId() const;
     bool getHasProcedureCall() const;
     bool getHasEnterProcedure() const;
     bool getHasExitProcedure() const;
     bool blockEndsWithUnconditionalJump() const;
+    bool changesControlAtEnd() const;
     TIDSet getGenSet() const;
     TIDSet getKillSet() const;
+    const std::map<std::string, std::vector<tac_line_t>> &getDefChain() const;
+    const tac_line_t &getFirstLabel() const;
 
     void computeGenAndKillSets();
 
@@ -47,9 +52,11 @@ private:
     static unsigned int basicBlockIdGenerator;
 
     unsigned int id;
+    unsigned int minorId;
     bool hasProcedureCall;
     bool hasEnterProcedure;
     bool hasExitProcedure;
+    bool controlChangesAtEnd;
     TIDSet localVariableDefinitions;
 
     std::vector<tac_line_t> instructions;
@@ -60,6 +67,7 @@ private:
     TIDSet killed;
 
     std::set<std::string> variableAssignments;
+    std::map<std::string, std::vector<tac_line_t>> defChain;
 };
 
 #endif

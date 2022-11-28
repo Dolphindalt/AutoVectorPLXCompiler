@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <logging.h>
+#include <assertions.h>
 
 AsmFile::AsmFile() {}
 

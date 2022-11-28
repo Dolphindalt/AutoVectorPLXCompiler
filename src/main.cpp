@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     Optimizer optimizer(tacCode);
 
     AssemblyGenerator generator;
-    generator.generateAssembly(tacCode);
+    generator.generateAssembly(optimizer.getBlocks());
 
     return EXIT_SUCCESS;
 }
