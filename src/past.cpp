@@ -339,7 +339,6 @@ std::optional<std::string> ArrayIndexAST::generateCode(
     tac_line_t index_line = generator.makeQuad(
         this->symTable, TAC_ARRAY_INDEX, array_address, index_address);
     generated.push_back(index_line);
-
     return index_line.result;
 }
 

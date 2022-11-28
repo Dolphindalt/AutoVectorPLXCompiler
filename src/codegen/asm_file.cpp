@@ -7,6 +7,8 @@
 AsmFile::AsmFile() {}
 
 void AsmFile::insertDataInstruction(const std::string &inst) {
+    // All variables are aligned to 8 bytes.
+    this->dataSectionLines.push_back(".align 8");
     this->dataSectionLines.push_back(inst);
 }
 

@@ -146,16 +146,6 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
                 "\tje " + tac_line_t::extract_label(instruction.argument1)
             );
             break;
-        case TAC_JMP_L:
-            this->asmFile.insertTextInstruction(
-                "\tjl " + tac_line_t::extract_label(instruction.argument1)
-            );
-            break;
-        case TAC_JMP_G:
-            this->asmFile.insertTextInstruction(
-                "\tjg " + tac_line_t::extract_label(instruction.argument1)
-            );
-            break;
         case TAC_JMP_LE:
             this->asmFile.insertTextInstruction(
                 "\tjle " + tac_line_t::extract_label(instruction.argument1)
@@ -181,10 +171,6 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_PROC_PARAM:
             break;
         case TAC_ASSIGN: {
-            // This is a declaration.
-            st_entry_t entry;
-            unsigned int level;
-            instruction.table->lookup(instruction.result, &level, &entry);
             // TAC assign has 2 forms
             ASSERT(instruction.argument2 == "");
 
@@ -195,15 +181,30 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
                 // result = arg1.
                 Address op1 = this->getLocation(
                     instruction.argument1, instruction
-                    );
-                Address result = this->getLocation(
-                    instruction.result,
-                    instruction
                 );
+                Address result = this->getLocation(
+                    instruction.result, instruction
+                );
+
+                // Use a stratch memory for two addresses.
+                if (result.isMemoryAddress() && op1.isMemoryAddress()) {
+                    Address newOp1 = this->forceAddressIntoRegister(
+                        instruction.result, instruction, NORMAL, false
+                    );
+
+                    this->asmFile.insertTextInstruction(
+                        "\tmovq " + op1.address() + ", " + newOp1.address()
+                    );
+                    this->regTable.updateRegisterValue(
+                        newOp1.address(), instruction.argument1, false);
+                    op1 = newOp1;
+                }
+
                 // Produce the instruction.
                 this->asmFile.insertTextInstruction(
                     "\tmovq " + op1.address() + ", " + result.address() 
                 );
+
                 if (result.isRegister()) {
                     this->regTable.setRegisterWasUpdated(result.address());
                 }
@@ -212,17 +213,22 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         }
         case TAC_SUB:
         case TAC_ADD: {
-            Address op1 = this->forceAddressIntoRegister(
-                instruction.argument1, instruction, NORMAL, false
+            const Address op1 = this->getLocation(
+                instruction.argument1, instruction
             );
             const Address op2 = this->getLocation(
                 instruction.argument2, instruction
             );
 
-            // Operand1 is also the result. We will say the result is 
-            // in the selected register as a result.
-            this->regTable.updateRegisterValue(
-                op1.address(), instruction.result, false
+            // To avoid changing the operand register, we allocate a new 
+            // register instead. This could be improved by only doing this 
+            // if the op1 register is dead.
+            reg_t resultRegister = getRegister(
+                instruction.result, instruction, NORMAL
+            );
+
+            this->asmFile.insertTextInstruction(
+                "\tmovq " + op1.address() + ", " + resultRegister
             );
 
             std::string num = "\taddq ";
@@ -231,10 +237,13 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
             }
 
             this->asmFile.insertTextInstruction(
-                num + op2.address() + ", " + op1.address()
+                num + op2.address() + ", " + resultRegister
             );
 
-            this->regTable.setRegisterWasUpdated(op1.address());
+            this->regTable.updateRegisterValue(
+                resultRegister, instruction.result, false
+            );
+            this->regTable.setRegisterWasUpdated(resultRegister);
             break;
         }
         case TAC_DIV:
@@ -360,10 +369,10 @@ reg_t AssemblyGenerator::getRegister(
 ) {
     st_entry_t sym_entry;
     unsigned int _level;
-    inst.table->lookup(value, &_level, &sym_entry);
+    bool found = inst.table->lookup(value, &_level, &sym_entry);
     ASSERT(sym_entry.entry_type != ST_CODE_GEN);
 
-    if (sym_entry.entry_type == ST_LITERAL) {
+    if (found && sym_entry.entry_type == ST_LITERAL) {
         return "$" + sym_entry.token.lexeme;
     }
 
@@ -498,6 +507,7 @@ void AssemblyGenerator::insertDataSection() {
     for (auto kv : AssemblyGenerator::data.getDataObjects()) {
         const std::string &value = kv.first;
         const unsigned int size = kv.second;
+
         if (size == VARIABLE_SIZE_BYTES) {
             this->asmFile.insertDataInstruction(value + ": .quad 0");
         } else {

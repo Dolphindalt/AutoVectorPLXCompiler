@@ -14,6 +14,10 @@ void Preprocessor::applyTwoInstructionRewrite() {
         tac_line_t &i1 = this->instructions.at(i-1);
         tac_line_t &i2 = this->instructions.at(i);
 
+        if (i2.operation == TAC_ARRAY_INDEX) {
+            this->isArray.insert(i2.result);
+        }
+
         bool didRemove = this->applyRedundantRewriteRule(i1, i2);
 
         if (didRemove) {
@@ -34,7 +38,8 @@ bool Preprocessor::applyRedundantRewriteRule(tac_line_t &i1, tac_line_t &i2) {
         // x = x op y
 
         // Both are temporary as they start with $.
-        if (i2.argument1 == i1.result && i1.result.at(0) == '$') {
+        if (i2.argument1 == i1.result && i1.result.at(0) == '$' && 
+            isArray.count(i2.result) == 0) {
 
             // x = x op y
             if (i1.argument1 == i2.result) {
@@ -66,10 +71,10 @@ void Preprocessor::convertLoopOperation(tac_line_t &i1, tac_line_t &i2) {
                 i2.operation = TAC_JMP_NE;
                 break;
             case TAC_GREATER_THAN:
-                i2.operation = TAC_JMP_L;
+                i2.operation = TAC_JMP_LE;
                 break;
             case TAC_LESS_THAN:
-                i2.operation = TAC_JMP_G;
+                i2.operation = TAC_JMP_GE;
                 break;
             case TAC_LE_THAN:
                 i2.operation = TAC_JMP_GE;

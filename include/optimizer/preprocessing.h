@@ -3,6 +3,7 @@
 
 #include <3ac.h>
 #include <vector>
+#include <set>
 
 class Preprocessor {
 public:
@@ -46,6 +47,7 @@ private:
     void convertLoopOperation(tac_line_t &i1, tac_line_t &i2);
 
     std::vector<tac_line_t> &instructions;
+    std::set<std::string> isArray;
 };
 
 #endif

@@ -29,6 +29,7 @@ buffer_loop_fu4wyuuysruf:
     test %r10, %r10
     jns add_sign_fwtnbnknmtyf828
 
+    addq $8, %r9
     pushq $45        # add the negative sign
 
 add_sign_fwtnbnknmtyf828:

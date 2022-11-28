@@ -55,11 +55,11 @@ const std::string Address::address() const {
 }
 
 const bool Address::isRegister() const {
-    return this->type & A_R64;
+    return this->type == A_R64;
 }
 
 const bool Address::isMemoryAddress() const {
-    return this->type & A_M64;
+    return this->type == A_M64;
 }
 
 const bool Address::isGlobal() const {
