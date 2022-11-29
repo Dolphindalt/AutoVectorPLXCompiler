@@ -512,7 +512,7 @@ void AssemblyGenerator::insertDataSection() {
             this->asmFile.insertDataInstruction(value + ": .quad 0");
         } else {
             this->asmFile.insertDataInstruction(
-                value + ": .zero " + std::to_string(size)
+                value + ": .zero " + std::to_string(size*8)
             );
         }
     }

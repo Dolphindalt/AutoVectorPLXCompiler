@@ -1,4 +1,4 @@
-var int i, int[100] a, int[100] b;
+var int i, int[100] a, int[100] b, int c;
 begin
     i := 0;
     while i < 100 do
@@ -7,9 +7,10 @@ begin
         i := i + 1
     end;
     i := 0;
+    c := 10;
     while i < 100 do
     begin
-        a[i] := b[i];
+        a[i] := b[i] + c;
         i := i + 1
     end;
     i := 0;
