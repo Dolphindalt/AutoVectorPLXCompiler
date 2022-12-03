@@ -48,7 +48,12 @@ typedef enum tac_op {
     TAC_LE_THAN,
     TAC_EQUALS,
     TAC_NOT_EQUALS,
-    TAC_ARRAY_INDEX
+    TAC_ARRAY_INDEX,
+    // Vector instructions.
+    TAC_VADD,
+    TAC_VSUB,
+    TAC_VLOAD,
+    TAC_VSTORE
 } tac_op_t;
 
 static std::map<tac_op_t, std::string> tacOpToStringMap = {
@@ -81,7 +86,11 @@ static std::map<tac_op_t, std::string> tacOpToStringMap = {
     {TAC_LE_THAN, "TAC_LESS_THAN_OR_EQUALS"},
     {TAC_EQUALS, "TAC_EQUALS"},
     {TAC_NOT_EQUALS, "TAC_NOT_EQUALS"},
-    {TAC_ARRAY_INDEX, "TAC_ARRAY_INDEX"}
+    {TAC_ARRAY_INDEX, "TAC_ARRAY_INDEX"},
+    {TAC_VADD, "TAC_VADD"},
+    {TAC_VSUB, "TAC_VSUB"},
+    {TAC_VLOAD, "TAC_VLOAD"},
+    {TAC_VSTORE, "TAC_VSTORE"}
 };
 
 typedef unsigned int TID;
@@ -100,6 +109,7 @@ public:
     static bool is_user_defined_var(const std::string &var);
     static bool is_read_or_write(const tac_line &line);
     bool is_operand_constant(const std::string &value) const;
+    void new_id();
     
     inline bool operator==(tac_line const &rhs) const {
         return this->bid == rhs.bid;

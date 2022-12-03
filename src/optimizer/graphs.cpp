@@ -17,13 +17,13 @@ std::vector<CFG> &Graphs::getProcedures() {
 void Graphs::constructCFGs(BlockSet &blocks) {
     BBP entryBlock = *blocks.begin();
     std::string entry = "entry";
-    this->entry = CFG(entry, entryBlock);
+    this->entry = CFG(blocks, entry, entryBlock);
 
-    std::for_each(++blocks.begin(), blocks.end(), [this](BBP block) {
+    std::for_each(++blocks.begin(), blocks.end(), [&blocks, this](BBP block) {
         if (block->getHasEnterProcedure()) {
             // From the structure of the 3AC.
             std::string proc_name = block->getInstructions().at(0).argument1;
-            this->procedures.push_back(CFG(proc_name, block));
+            this->procedures.push_back(CFG(blocks, proc_name, block));
         }
     });
 }

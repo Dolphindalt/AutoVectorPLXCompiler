@@ -10,12 +10,12 @@
 #include <string>
 #include <functional>
 
-#define AUTOMATIC_VECTORIZATION_ENABLED 1
+#define AUTOMATIC_VECTORIZATION_ENABLED
 
 class CFG {
 public:
     CFG();
-    CFG(std::string &name, BBP firstBlock);
+    CFG(BlockSet &allBlocks, std::string &name, BBP firstBlock);
 
     void performPostorderTraversal(std::function<void(BBP block)> action) const;
 
@@ -30,7 +30,8 @@ private:
     std::set<std::pair<BBP, BBP>> computeBackwardsEdges();
 
     std::vector<NaturalLoop> computeNaturalLoops(
-        std::set<std::pair<BBP, BBP>> backedges
+        std::set<std::pair<BBP, BBP>> backedges,
+        BlockSet &allBlocks
     ) const;
 
     std::string name;

@@ -12,6 +12,28 @@ BasicBlock::BasicBlock()
     controlChangesAtEnd(false), 
     localVariableDefinitions(BasicBlock::globalVarDefinitions) {}
 
+BasicBlock::BasicBlock(
+    const unsigned int newMajorId, 
+    const BBP copy
+) : id(newMajorId), minorId(BasicBlock::minorIdGenerator++), 
+    hasProcedureCall(copy->hasProcedureCall),
+    hasEnterProcedure(copy->hasEnterProcedure), 
+    hasExitProcedure(copy->hasExitProcedure), 
+    controlChangesAtEnd(copy->controlChangesAtEnd), 
+    localVariableDefinitions(copy->localVariableDefinitions),
+    instructions(copy->instructions),
+    successors(copy->successors),
+    predecessors(copy->predecessors),
+    generated(copy->generated),
+    killed(copy->killed),
+    variableAssignments(copy->variableAssignments),
+    defChain(copy->defChain),
+    useChain(copy->useChain) {
+        for (tac_line_t &inst : this->instructions) {
+            inst.bid = tac_line_t::bid_gen++;
+        }
+    }
+
 BasicBlock::~BasicBlock() {}
 
 void BasicBlock::insertInstruction(const tac_line_t instruction) {
@@ -39,6 +61,7 @@ void BasicBlock::insertInstruction(const tac_line_t instruction) {
         this->globalVarDefinitions.insert(instruction);
         this->localVariableDefinitions.insert(instruction);
         this->variableAssignments.insert(instruction.result);
+
         if (!this->defChain.count(instruction.result)) {
             this->defChain.insert(
                 std::make_pair(instruction.result, std::vector<tac_line_t>())
@@ -47,7 +70,38 @@ void BasicBlock::insertInstruction(const tac_line_t instruction) {
         this->defChain.at(instruction.result).push_back(instruction);
     }
 
+    if (instruction.argument1 != "") {
+        if (!this->useChain.count(instruction.argument1)) {
+            this->useChain.insert(
+                std::make_pair(instruction.argument1, std::vector<tac_line_t>())
+            );
+        }
+        this->useChain.at(instruction.argument1).push_back(instruction);
+    }
+
+    if (instruction.argument2 != "") {
+        if (!this->useChain.count(instruction.argument2)) {
+            this->useChain.insert(
+                std::make_pair(instruction.argument2, std::vector<tac_line_t>())
+            );
+        }
+        this->useChain.at(instruction.argument2).push_back(instruction);
+    }
+
     this->instructions.push_back(instruction);
+}
+
+void BasicBlock::insertInstructions(
+    std::vector<tac_line_t> instructions, const bool atEnd
+) {
+    if (atEnd) {
+        this->instructions.insert(this->instructions.end(),
+            instructions.begin(), instructions.end());
+    } else {
+        instructions.insert(instructions.end(),
+            this->instructions.begin(), this->instructions.end());
+        this->instructions = instructions;
+    }
 }
 
 void BasicBlock::removeInstruction(const tac_line_t instruction) {
@@ -62,11 +116,41 @@ void BasicBlock::insertPredecessor(BBP block) {
     this->predecessors.push_back(block);
 }
 
+void BasicBlock::insertPredecessors(std::vector<BBP> iPreds) {
+    this->predecessors.insert(this->predecessors.end(),
+            iPreds.begin(), iPreds.end());
+}
+
+void BasicBlock::clearPredecessors() {
+    this->predecessors.clear();
+}
+
+void BasicBlock::removePredecessor(BBP block) {
+    this->predecessors.erase(
+        std::find(this->predecessors.begin(), this->predecessors.end(), block)
+    );
+}
+
 void BasicBlock::insertSuccessor(BBP block) {
     this->successors.push_back(block);
 }
 
-const std::vector<tac_line_t> &BasicBlock::getInstructions() {
+void BasicBlock::insertSuccessors(std::vector<BBP> iSuccs) {
+    this->successors.insert(this->successors.end(),
+            iSuccs.begin(), iSuccs.end());
+}
+
+void BasicBlock::clearSuccessors() {
+    this->successors.clear();
+}
+
+void BasicBlock::removeSuccessor(BBP block) {
+    this->successors.erase(
+        std::find(this->successors.begin(), this->successors.end(), block)
+    );
+}
+
+std::vector<tac_line_t> &BasicBlock::getInstructions() {
     return this->instructions;
 }
 
@@ -84,6 +168,10 @@ unsigned int BasicBlock::getID() const {
 
 unsigned int BasicBlock::getMinorId() const {
     return this->minorId;
+}
+
+void BasicBlock::setMinorId(const unsigned int mid) {
+    this->minorId = mid;
 }
 
 bool BasicBlock::getHasProcedureCall() const {
@@ -145,7 +233,8 @@ void BasicBlock::computeGenAndKillSets() {
 }
 
 std::string BasicBlock::to_string() const {
-    std::string label = "\"Basic Block " + std::to_string(this->id) + "\\n";
+    std::string label = "\"Basic Block " + std::to_string(this->id) + "." +
+        std::to_string(this->minorId) + "\\n";
     std::for_each(this->instructions.begin(), this->instructions.end(), 
         [&label](tac_line_t t) {
             label += TACGenerator::tacLineToString(t) + "\\n";
@@ -156,3 +245,5 @@ std::string BasicBlock::to_string() const {
 }
 
 unsigned int BasicBlock::basicBlockIdGenerator = 0;
+
+unsigned int BasicBlock::minorIdGenerator = 1;

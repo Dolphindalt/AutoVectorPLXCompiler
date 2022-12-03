@@ -1,20 +1,50 @@
 #include <optimizer/loop_vectorizer.h>
 
+#include <optimizer/strip_profile.h>
 #include <assertions.h>
 
 #define FAIL_MESSAGE "Failed to vectorize loop: "
 
 LoopVectorizer::LoopVectorizer(NaturalLoop &loop) : loop(loop) {
     this->canVectorize = this->checkCanLoopBeVectorized();
+}
+
+void LoopVectorizer::vectorize() {
     if (this->canVectorize) {
         INFO_LOG("Can vectorize loop %s", loop.to_string().c_str());
     } else {
         WARNING_LOG("Cannot vectorized loop %s", loop.to_string().c_str());
+        return;
     }
+
+    // Duplicate the loop after the current loop.
+    loop.duplicateLoopAfterThisLoop();
+
+    // Strip mine the loop.
+    // By default, all variables are 8 bytes and fit into a 256 bit register.
+    //this->stripMineLoop(3);
 }
 
-void LoopVectorizer::vectorize() {
-    // Strip mine the loop.
+void LoopVectorizer::stripMineLoop(const unsigned int unroll) {
+    // Step 1: find the induction variable. We did that already.
+    // We know it is a simple induction variable in the form i = i + 1.
+
+    // Step 2: duplicate all instructions unroll times in each basic block.
+    // We are confined to simple loops, so the only basic block will be the 
+    // footer block, but this could be changed in the future.
+    std::vector<tac_line_t> instructionGroup;
+    this->loop.forEachBBInBody([this, &instructionGroup](BBP bb) {
+        for (tac_line_t inst : bb->getInstructions()) {
+            instructionGroup.push_back(inst);
+        }
+
+        if (this->loop.getFooter() == bb && bb->changesControlAtEnd()) {
+            instructionGroup.pop_back();
+        }
+    });
+
+    StripProfile profile(this->loop.getFooter(), unroll, instructionGroup, true);
+    profile.unroll();
 }
 
 bool LoopVectorizer::checkCanLoopBeVectorized() {
@@ -27,6 +57,13 @@ bool LoopVectorizer::checkCanLoopBeVectorized() {
     bool foundIterator = loop.identifyLoopIterator(index);
     if (!foundIterator) {
         WARNING_LOG(FAIL_MESSAGE "Failed to determine loop iterator");
+        return false;
+    }
+
+    // We will only vectorize loops of simple induction variables that 
+    // increment by 1 (makes strip mining easier).
+    if (index.constant != "1") {
+        WARNING_LOG(FAIL_MESSAGE "Increment is not 1");
         return false;
     }
 
@@ -56,7 +93,10 @@ bool LoopVectorizer::computeDirectionVectors(
             bool dependsOnIterator;
             int vector_out;
             bool foundVector = this->getDirectionVectorFromVariable(
-                inst.argument2, index, dependsOnIterator, vector_out
+                inst.argument2, 
+                index.inductionVar, 
+                dependsOnIterator, 
+                vector_out
             );
 
             if (!foundVector) {

@@ -5,9 +5,13 @@
 #include <logging.h>
 
 NaturalLoop::NaturalLoop(
-    BBP header, BBP footer, const Reach *reach, const Dominator *dom
+    BBP header, 
+    BBP footer, 
+    const Reach *reach, 
+    const Dominator *dom,
+    BlockSet &allBlocks
 ) 
-: header(header), footer(footer), reach(reach), dom(dom) {
+: header(header), footer(footer), reach(reach), dom(dom), allBlocks(allBlocks) {
     this->findInvariants();
     this->findInductionVariables();
 }
@@ -210,7 +214,7 @@ void NaturalLoop::findInductionVariables() {
     }
 }
 
-bool NaturalLoop::identifyLoopIterator(std::string &varNameOut) const {
+bool NaturalLoop::identifyLoopIterator(induction_variable_t &varNameOut) const {
     // TODO: This needs to be made more sophisticated to detect more a wider
     // range of loop classes. We will detect candidate induction variables 
     // that are DIRECT operands in the loop header.
@@ -223,14 +227,14 @@ bool NaturalLoop::identifyLoopIterator(std::string &varNameOut) const {
             if (this->isSimpleInductionVariable(inst.argument1)) {
                 if (!foundOne) {
                     foundOne = true;
-                    varNameOut = inst.argument1;
+                    varNameOut = this->inductionVariables.at(inst.argument1);
                 } else return false;
             }
 
             if (this->isSimpleInductionVariable(inst.argument2)) {
                 if (!foundOne) {
                     foundOne = true;
-                    varNameOut = inst.argument2;
+                    varNameOut = this->inductionVariables.at(inst.argument2);
                 } else return false;
             }
 
@@ -240,13 +244,130 @@ bool NaturalLoop::identifyLoopIterator(std::string &varNameOut) const {
     return foundOne;
 }
 
+void NaturalLoop::duplicateLoopAfterThisLoop() {
+    BBP exit = this->getExit();
+    // The new blocks occur after the footer but before the exit, so they
+    // will have the same major id as the footer block.
+    const unsigned int newBlocksMajorId = this->getFooter()->getID();
+
+    // Copying of the loop blocks.
+    // The header must be made the predecessor to the footer and the 
+    // header made the successor to the footer.
+    //
+    // LHead -> ... -> LFoot -> LExit
+    //
+    // LHead -> NewHead -> ... -> NewFoot -> LExit
+    std::vector<BBP> copyLoop;
+
+    BBP footerCopy = std::make_shared<BasicBlock>(
+        newBlocksMajorId, this->getFooter()
+    );
+    footerCopy->clearPredecessors();
+    footerCopy->clearSuccessors();
+
+    // NewFoot -> LExit
+    footerCopy->insertSuccessor(exit);
+    exit->clearPredecessors();
+    exit->insertPredecessor(footerCopy);
+
+    copyLoop.push_back(footerCopy);
+
+    BBP headerCopy = std::make_shared<BasicBlock>(
+        newBlocksMajorId, this->getHeader()
+    );
+    headerCopy->clearPredecessors();
+    headerCopy->clearSuccessors();
+    
+    // Loop backedge from header to footer.
+    headerCopy->insertPredecessor(footerCopy);
+    footerCopy->insertSuccessor(headerCopy);
+
+    // ... -> NewFoot
+    BBP successor = footerCopy;
+    this->forEachBBInBody(
+        [&copyLoop, &successor, this, newBlocksMajorId](BBP body) {
+            // We deal with the footer outside the loop.
+            if (body == this->getFooter()) {
+                return;
+            }
+
+            // Invariant: Footer dominates header implies
+            // Invariant: Loops are traversed in backwards order implies
+            // Invariant: Each block succeeds/preceeds the other.
+            BBP bodyCopy = std::make_shared<BasicBlock>(
+                newBlocksMajorId, body
+            );
+
+            bodyCopy->clearPredecessors();
+            bodyCopy->clearSuccessors();
+
+            bodyCopy->insertSuccessor(successor);
+            successor->insertPredecessor(bodyCopy);
+
+            successor = bodyCopy;
+
+            copyLoop.push_back(bodyCopy);
+        }
+    );
+
+    BBP firstInLoopBody = copyLoop.back();
+    // LHead -> NewHead -> ...
+
+    this->getHeader()->removeSuccessor(exit);
+    this->getHeader()->insertSuccessor(headerCopy);
+
+    firstInLoopBody->insertPredecessor(headerCopy);
+
+    copyLoop.push_back(headerCopy);
+
+    // Now TAC instructions and labels need to be made unique and reordered.
+    for (BBP &bb : copyLoop) {
+        for (tac_line_t &inst : bb->getInstructions()) {
+            if (tac_line_t::is_conditional_jump(inst) 
+                || inst.operation == TAC_UNCOND_JMP
+                || inst.operation == TAC_LABEL) {
+                    // Now it is copied :)
+                    inst.argument1 += "C";
+            }
+        }
+    }
+
+    // The original header needs to jump to the new header
+    // in the conditional.
+    ASSERT(tac_line_t::is_conditional_jump(
+        this->getHeader()->getInstructions().back()));
+
+    this->getHeader()->getInstructions().back().argument1 = 
+        headerCopy->getFirstLabel().argument1;
+
+    // The new header needs to jump to the old exit in the conditional.
+    ASSERT(tac_line_t::is_conditional_jump(
+        headerCopy->getInstructions().back()));
+
+    headerCopy->getInstructions().back().argument1 = 
+        exit->getFirstLabel().argument1;
+    
+    // The blocks are backwards, so we swap their minor IDs.
+    for (size_t i = 0; i < copyLoop.size() / 2; i++) {
+        const size_t ridx = copyLoop.size() - 1 - i;
+        const unsigned int temp = copyLoop.at(i)->getMinorId();
+        copyLoop.at(i)->setMinorId(copyLoop.at(ridx)->getMinorId());
+        copyLoop.at(ridx)->setMinorId(temp);
+    }
+
+    // We need to insert the new blocks.
+    for (auto bb : copyLoop) {
+        INFO_LOG("Copy loop BB: %d.%d", bb->getID(), bb->getMinorId());
+        this->allBlocks.insert(bb);
+    }
+
+}
+
 bool NaturalLoop::isSimpleLoop() const {
     for (const tac_line_t &instruction : this->getFooter()->getInstructions()) {
         if (tac_line_t::is_conditional_jump(instruction)) {
             return false;
         } else if (tac_line_t::is_procedure_call(instruction)) {
-            return false;
-        } else if (tac_line_t::is_read_or_write(instruction)) {
             return false;
         }
     }
@@ -263,6 +384,15 @@ bool NaturalLoop::isInductionVariable(const std::string &value) const {
 
 bool NaturalLoop::isSimpleInductionVariable(const std::string &value) const {
     return this->simpleInductionVariables.count(value) > 0;
+}
+
+BBP NaturalLoop::getExit() const {
+    for (const BBP &bbp : this->getHeader()->getSuccessors()) {
+        if (!this->dom->dominates(bbp, this->getHeader())) {
+            return bbp;
+        }
+    }
+    return nullptr;
 }
 
 const BBP NaturalLoop::getHeader() const {

@@ -1,0 +1,9 @@
+var int[20] a, int[20] b, int[20] c, int i;
+begin
+    i := 0;
+    while i < 20 do
+    begin
+        c[i] := a[i] + b[i];
+        i := i + 1
+    end
+end.

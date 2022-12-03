@@ -221,8 +221,7 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
             );
 
             // To avoid changing the operand register, we allocate a new 
-            // register instead. This could be improved by only doing this 
-            // if the op1 register is dead.
+            // register instead. This could be improved.
             reg_t resultRegister = getRegister(
                 instruction.result, instruction, NORMAL
             );
@@ -298,6 +297,13 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         }
         case TAC_ENTER_PROC:
         case TAC_EXIT_PROC:
+            break;
+        case TAC_VADD:
+        case TAC_VSUB:
+            break;
+        case TAC_VLOAD:
+            break;
+        case TAC_VSTORE:
             break;
         default:
             ERROR_LOG("invalid 3AC operation %d", instruction.operation);

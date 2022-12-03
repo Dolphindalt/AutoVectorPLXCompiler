@@ -12,6 +12,34 @@ public:
     LoopVectorizer(NaturalLoop &loop);
     
     void vectorize();
+
+    /**
+     * Unrolls a loop up until the unroll factor.
+     * 
+     * Example:
+     * i := 0;
+     * while i < 10 do
+     * begin
+     *     i := i + 1;
+     * end;
+     * With a factor of 4:
+     * while i < 10 do
+     * begin
+     *     i := i + 1;
+     *     i := i + 1;
+     *     i := i + 1;
+     *     i := i + 1;
+     * end
+     * while i < 10 do
+     * begin
+     *     i := i + 1;
+     * end
+     * 
+     * The purpose of this is to not unroll vectorized operations but unroll
+     * all other scalar operations. The unroll factor would be how many 
+     * elements are to be vectorized.
+     */
+    void stripMineLoop(const unsigned int unroll);
 private:
     bool checkCanLoopBeVectorized();
     /**
@@ -41,7 +69,7 @@ private:
 
     NaturalLoop &loop;
     bool canVectorize;
-    std::string index;
+    induction_variable_t index;
     std::vector<int> directionVectors;
 };
 

@@ -20,6 +20,7 @@ void RegisterTable::updateRegisterValue(
 ) {
     this->valueMap.insert(std::make_pair(reg, newValue));
     this->regMap.insert(std::make_pair(newValue, reg));
+    this->updatedMap[reg] = false;
     this->setContainsAddress(reg, containsAddress);
 }
 
@@ -84,6 +85,13 @@ bool RegisterTable::containsAddress(const reg_t &reg) const {
 
 void RegisterTable::setRegisterWasUpdated(const reg_t &reg) {
     this->updatedMap[reg] = true;
+
+    // Other registers that contain the same value are now out of date.
+    for (reg_t staleReg : this->getRegistersInUse(NORMAL)) {
+        if (staleReg != reg) {
+            this->updatedMap[staleReg] = false;
+        }
+    }
 }
 
 bool RegisterTable::isRegisterUpdated(const reg_t &reg) const {

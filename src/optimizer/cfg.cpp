@@ -9,7 +9,7 @@
 
 CFG::CFG() {};
 
-CFG::CFG(std::string &name, BBP firstBlock) : name(name), 
+CFG::CFG(BlockSet &allBlocks, std::string &name, BBP firstBlock) : name(name), 
     entryBlock(firstBlock), dominator(Dominator(this)), reach(Reach(this)) {
         printf("%s\n\n", this->to_graph().c_str());
         printf("%s", this->dominator.to_graph().c_str());
@@ -18,7 +18,7 @@ CFG::CFG(std::string &name, BBP firstBlock) : name(name),
         for (auto p : backedges) {
             printf("(%d, %d)\n", p.first->getID(), p.second->getID());
         }
-        auto nloops = this->computeNaturalLoops(backedges);
+        auto nloops = this->computeNaturalLoops(backedges, allBlocks);
         printf("Natural Loops\n");
         for (auto p : nloops) {
             printf("(%d, %d)\n", p.getHeader()->getID(), p.getFooter()->getID());
@@ -112,14 +112,21 @@ std::set<std::pair<BBP, BBP>> CFG::computeBackwardsEdges() {
 }
 
 std::vector<NaturalLoop> CFG::computeNaturalLoops(
-    std::set<std::pair<BBP, BBP>> backedges
+    std::set<std::pair<BBP, BBP>> backedges,
+    BlockSet &allBlocks
 ) const {
     std::vector<NaturalLoop> loops;
 
     for (auto e = backedges.begin(); e != backedges.end(); e++) {
         if (this->dominator.dominates(e->second, e->first)) {
             loops.push_back(
-                NaturalLoop(e->second, e->first, &this->reach, &this->dominator)
+                NaturalLoop(
+                    e->second, 
+                    e->first, 
+                    &this->reach, 
+                    &this->dominator, 
+                    allBlocks
+                )
             );
         }
     }

@@ -4,6 +4,7 @@
 #include <optimizer/basic_block.h>
 #include <optimizer/reach.h>
 #include <optimizer/dominator.h>
+#include <optimizer/block_types.h>
 
 #include <functional>
 #include <string>
@@ -22,6 +23,8 @@ public:
     std::string inductionVar;
     std::string constant;
     struct induction_variable *previousInductionVar;
+
+    induction_variable() {}
 
     induction_variable(
         bool is_simple, 
@@ -50,7 +53,11 @@ public:
 class NaturalLoop {
 public:
     NaturalLoop(
-        BBP header, BBP footer, const Reach *reach, const Dominator *dom
+        BBP header, 
+        BBP footer, 
+        const Reach *reach, 
+        const Dominator *dom,
+        BlockSet &allBlocks
     );
 
     /**
@@ -90,7 +97,19 @@ public:
      * @param varNameOut The name of the iterator variable, if found.
      * @return False if multiple iterators exist or an iterator is not found.
      */
-    bool identifyLoopIterator(std::string &varNameOut) const;
+    bool identifyLoopIterator(induction_variable_t &varNameOut) const;
+
+    /**
+     * This function duplicates the loop after the exit of the exit of the 
+     * loop. Natural loops are expected to only have one exit at which is 
+     * the predecessor of the header block that does not dominate the header.
+     * The copy of the loop will become the new exit to the loop header and 
+     * the previous exit block becomes the exit block of the copy loop.
+     * 
+     * This will only work on loops where the footer dominates every block to
+     * the header.
+     */
+    void duplicateLoopAfterThisLoop();
 
     /** 
      * A simple loop has its header as a predecessor and successor of the 
@@ -110,6 +129,8 @@ public:
 
     bool isSimpleInductionVariable(const std::string &value) const;
 
+    BBP getExit() const;
+
     const BBP getHeader() const;
     const BBP getFooter() const;
 
@@ -121,6 +142,7 @@ private:
     BBP footer;
     const Reach *reach;
     const Dominator *dom;
+    BlockSet &allBlocks;
 
     std::set<std::string> invariants;
     std::map<std::string, induction_variable_t> simpleInductionVariables;

@@ -38,6 +38,10 @@ bool tac_line_t::is_comparision(const tac_line_t &line) {
     return false;
 }
 
+void tac_line_t::new_id() {
+    this->bid = bid_gen++;
+}
+
 bool tac_line_t::has_result(const tac_line_t &line) {
     return line.result != "";
 }
