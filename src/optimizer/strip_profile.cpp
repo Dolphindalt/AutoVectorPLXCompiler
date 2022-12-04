@@ -55,6 +55,7 @@ void StripProfile::insertVectorInstructions() {
             load.argument1 = old.argument1;
             load.argument2 = old.argument2;
             load.result = old.result;
+            load.table = old.table;
             return load;
         };
 
@@ -124,7 +125,21 @@ void StripProfile::insertVectorInstructions() {
     }
 
     if (this->canSquashLoop()) {
+        tac_line_t &iterator = this->iteration.at(0);
+
+        st_entry_t lit_info;
+        iterator.table->lookupOrInsertIntConstant(this->factor, &lit_info);
+        ASSERT(lit_info.entry_type == ST_LITERAL);
+        ASSERT(lit_info.literal.type == INT);
+        const std::string newItrIncr = std::to_string(this->factor);
+
+        if (iterator.is_operand_constant(iterator.argument1)) {
+            iterator.argument1 = newItrIncr;
+        } else if (iterator.is_operand_constant(iterator.argument2)) {
+            iterator.argument2 = newItrIncr;
+        }
         this->iteration.clear();
+        this->vectorInsts.push_back(iterator);
     }
 
 }

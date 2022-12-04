@@ -52,8 +52,11 @@ reg_t RegisterTable::getRegisterWithValue(const std::string &value) const {
     return this->regMap.at(value);
 }
 
-bool RegisterTable::isValueInRegister(const std::string &value) const {
-    return this->regMap.count(value) > 0;
+bool RegisterTable::isValueInRegister(
+    const std::string &value, const register_type_t type
+) const {
+    return this->regMap.count(value) > 0 && 
+        this->selectRegisters(type).count(this->regMap.at(value)) > 0;
 }
 
 bool RegisterTable::doesRegisterContainValue(const reg_t &reg) const {
@@ -129,7 +132,7 @@ const std::map<reg_t, std::string> &RegisterTable::getValueMap() const {
     return this->valueMap;
 }
 
-std::set<reg_t> RegisterTable::selectRegisters(
+const std::set<reg_t> &RegisterTable::selectRegisters(
     const register_type_t type
 ) const {
     switch (type) {

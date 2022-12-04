@@ -107,7 +107,8 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_WRITE: {
             Address thingToWrite = this->getLocation(
                 instruction.argument1,
-                instruction
+                instruction,
+                NORMAL
             );
 
             // Push registers in use that are not perserved.
@@ -176,14 +177,14 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
 
             // Just the result
             if (instruction.argument1 == "") {
-                this->getLocation(instruction.result, instruction);
+                this->getLocation(instruction.result, instruction, NORMAL);
             } else {
                 // result = arg1.
                 Address op1 = this->getLocation(
-                    instruction.argument1, instruction
+                    instruction.argument1, instruction, NORMAL
                 );
                 Address result = this->getLocation(
-                    instruction.result, instruction
+                    instruction.result, instruction, NORMAL
                 );
 
                 // Use a stratch memory for two addresses.
@@ -214,10 +215,10 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_SUB:
         case TAC_ADD: {
             const Address op1 = this->getLocation(
-                instruction.argument1, instruction
+                instruction.argument1, instruction, NORMAL
             );
             const Address op2 = this->getLocation(
-                instruction.argument2, instruction
+                instruction.argument2, instruction, NORMAL
             );
 
             // To avoid changing the operand register, we allocate a new 
@@ -262,7 +263,9 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
             );
             const Address operand2 = this->getLocation(
                 instruction.argument2,
-                instruction);
+                instruction,
+                NORMAL
+            );
 
             this->asmFile.insertTextInstruction(
                 "\tcmpq " + operand2.address() + ", " + operand1.address()
@@ -301,9 +304,39 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_VADD:
         case TAC_VSUB:
             break;
-        case TAC_VLOAD:
+        case TAC_VLOAD: {
+            // We always load into a new register for this instruction.
+            const reg_t res_reg = 
+                this->getRegister(instruction.result, instruction, AVX);
+            
+            const Address array = this->forceAddressIntoRegister(
+                instruction.argument1,
+                instruction,
+                NORMAL,
+                true
+            );
+            const Address index = this->forceAddressIntoRegister(
+                instruction.argument2,
+                instruction,
+                NORMAL,
+                false
+            );
+
+            const std::string mem = 
+                "(" + array.address() + ", " + index.address() +",8)";
+
+            this->asmFile.insertTextInstruction(
+                "\tvbroadcastf128 " + mem + ", " + res_reg
+            );
+
+            this->regTable
+                .updateRegisterValue(res_reg, instruction.result, false);
             break;
+        }
         case TAC_VSTORE:
+            // Reserved.
+            break;
+        case TAC_VASSIGN:
             break;
         default:
             ERROR_LOG("invalid 3AC operation %d", instruction.operation);
@@ -313,7 +346,8 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
 
 Address AssemblyGenerator::getLocation(
     const std::string &value,
-    const tac_line_t &inst
+    const tac_line_t &inst,
+    const register_type_t type
 ) {
     st_entry_t sym_entry;
     unsigned int level;
@@ -326,7 +360,7 @@ Address AssemblyGenerator::getLocation(
     }
 
     // Maybe the value is in a register.
-    bool isValueInReg = this->regTable.isValueInRegister(value);
+    bool isValueInReg = this->regTable.isValueInRegister(value, type);
     if (isValueInReg) {
         std::string registerName = this->regTable.getRegisterWithValue(value);
 
@@ -386,7 +420,7 @@ reg_t AssemblyGenerator::getRegister(
 
     const bool isDead = liveness.result.liveness == CG_DEAD;
     const bool noNextUse = liveness.result.next_use == NO_NEXT_USE;
-    const bool isValueInReg = this->regTable.isValueInRegister(value);
+    const bool isValueInReg = this->regTable.isValueInRegister(value, type);
 
     if (isValueInReg && noNextUse && isDead) {
         return this->regTable.getRegisterWithValue(value);
@@ -530,7 +564,7 @@ Address AssemblyGenerator::forceAddressIntoRegister(
     register_type_t type,
     bool isAddress=false
 ) {
-    Address operand = this->getLocation(value, inst);
+    Address operand = this->getLocation(value, inst, type);
     if (!operand.isRegister()) {
         reg_t reg = this->getRegister(value, inst, type);
 
@@ -545,7 +579,7 @@ Address AssemblyGenerator::forceAddressIntoRegister(
         }
 
         this->regTable.updateRegisterValue(reg, value, false);
-        operand = this->getLocation(value, inst);
+        operand = this->getLocation(value, inst, type);
     }
     return operand;
 }

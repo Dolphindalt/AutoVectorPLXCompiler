@@ -62,7 +62,9 @@ public:
     reg_t getUsedRegister(const register_type_t type) const;
     reg_t getUnusedRegister(const register_type_t type) const;
     reg_t getRegisterWithValue(const std::string &value) const;
-    bool isValueInRegister(const std::string &value) const;
+    bool isValueInRegister(
+        const std::string &value, const register_type_t type
+    ) const;
     bool doesRegisterContainValue(const reg_t &reg) const;
 
     std::string getRegisterValue(const reg_t &reg) const;
@@ -81,7 +83,7 @@ public:
 
     const std::map<reg_t, std::string> &getValueMap() const;
 private:
-    std::set<reg_t> selectRegisters(const register_type_t type) const;
+    const std::set<reg_t> &selectRegisters(const register_type_t type) const;
 
     std::map<reg_t, std::string> valueMap;
     std::map<std::string, reg_t> regMap;

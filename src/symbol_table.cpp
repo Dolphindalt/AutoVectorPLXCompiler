@@ -40,6 +40,21 @@ bool SymbolTable::lookup(
     return false;
 }
 
+void SymbolTable::lookupOrInsertIntConstant(
+    const int64_t value,
+    st_entry_t *out_entry
+) {
+    const address name = std::to_string(value);
+    if (this->symbolTable.count(name) > 0) {
+        *out_entry = this->symbolTable.at(name);
+    } else {
+        out_entry->entry_type = ST_LITERAL;
+        out_entry->literal.type = INT;
+        out_entry->literal.value.int_value = value;
+        this->insert(name, *out_entry);
+    }
+}
+
 unsigned int SymbolTable::getTypeSizeBytes(const st_entry_t &entry) const {
     const st_entry_type_t type = entry.entry_type;
     unsigned int sizeBytes = 0;

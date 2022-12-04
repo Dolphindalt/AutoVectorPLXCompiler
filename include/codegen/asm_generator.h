@@ -27,7 +27,8 @@ private:
 
     Address getLocation(
         const std::string &value,
-        const tac_line_t &inst
+        const tac_line_t &inst,
+        const register_type_t type
     );
 
     reg_t getRegister(

@@ -107,6 +107,11 @@ public:
         st_entry_t *out_entry
     ) const;
 
+    void lookupOrInsertIntConstant(
+        const int64_t value,
+        st_entry_t *out_entry
+    );
+
     unsigned int getTypeSizeBytes(const st_entry_t &entry) const;
 
     bool isGlobalScope() const;
