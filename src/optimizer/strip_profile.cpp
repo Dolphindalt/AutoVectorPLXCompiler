@@ -112,10 +112,16 @@ void StripProfile::insertVectorInstructions() {
             case TAC_ASSIGN: {
                 // This is an alias, c = $1, $1 = a + b.
                 // It can also be a copy assignment c = a where a is loaded.
-                if (isArrayVar(inst.argument1)) {
+                if (isArrayVar(inst.result) && isArrayVar(inst.argument1)) {
                     this->vectorInsts
                         .push_back(makeInstCpyN(inst, TAC_VASSIGN));
                     this->iteration.erase(i);
+
+                    // The result needs to be stored.
+                    tac_line_t store = makeInstCpyN(
+                        arrayVarInfo.at(inst.result), TAC_VSTORE
+                    );
+                    this->vectorInsts.push_back(store);
                     i--;
                 }
             }

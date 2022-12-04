@@ -302,8 +302,40 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
         case TAC_EXIT_PROC:
             break;
         case TAC_VADD:
-        case TAC_VSUB:
+        case TAC_VSUB: {
+            // It is assumed that the values will be loaded into registers.
+            const Address lhs = this->getLocation(
+                instruction.argument1,
+                instruction,
+                AVX
+            );
+            ASSERT(lhs.isRegister());
+            const Address rhs = this->getLocation(
+                instruction.argument2,
+                instruction,
+                AVX
+            );
+            ASSERT(rhs.isRegister());
+            const Address result = this->getLocation(
+                instruction.result,
+                instruction,
+                AVX
+            );
+
+            const std::string inst = 
+                (instruction.operation == TAC_VADD) ? "\tvaddpd " : "\tvsubpd ";
+            
+            this->asmFile.insertTextInstruction(
+                inst + rhs.address() + ", " + lhs.address() + ", " + 
+                    result.address() 
+            );
+
+            this->regTable.updateRegisterValue(
+                result.address(), instruction.result, false
+            );
+
             break;
+        }
         case TAC_VLOAD: {
             // We always load into a new register for this instruction.
             const reg_t res_reg = 
@@ -326,18 +358,56 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
                 "(" + array.address() + ", " + index.address() +",8)";
 
             this->asmFile.insertTextInstruction(
-                "\tvbroadcastf128 " + mem + ", " + res_reg
+                "\tvmovapd " + mem + ", " + res_reg
             );
 
             this->regTable
                 .updateRegisterValue(res_reg, instruction.result, false);
             break;
         }
-        case TAC_VSTORE:
-            // Reserved.
+        case TAC_VSTORE: {
+            // This is in the format res = $1, arg1 = arr, arg2 = idx.
+            // We want to store the result in the array at the index.
+            const Address array = this->forceAddressIntoRegister(
+                instruction.argument1,
+                instruction,
+                NORMAL,
+                true
+            );
+            const Address index = this->forceAddressIntoRegister(
+                instruction.argument2,
+                instruction,
+                NORMAL,
+                false
+            );
+            const Address result = this->getLocation(
+                instruction.result,
+                instruction,
+                AVX
+            );
+
+            const std::string mem = 
+                "(" + array.address() + ", " + index.address() + ",8)";
+
+            this->asmFile.insertTextInstruction(
+                "\tvmovntpd " + result.address() + ", " + mem
+            );
             break;
-        case TAC_VASSIGN:
+        }
+        case TAC_VASSIGN: {
+            // This is an alias that remains due to how additions are normally 
+            // handled. This instruction effectively does nothing.
+            const Address old = this->getLocation(
+                instruction.argument1,
+                instruction,
+                AVX
+            );
+            ASSERT(old.isRegister());
+            this->regTable.updateRegisterValue(
+                old.address(), instruction.result, false
+            );
             break;
+        }
         default:
             ERROR_LOG("invalid 3AC operation %d", instruction.operation);
             exit(EXIT_FAILURE);
@@ -394,7 +464,7 @@ Address AssemblyGenerator::getLocation(
     // into the memory in this way. This is part of the assumption that all
     // user defined variables are in memory by default.
     if (!tac_line_t::is_user_defined_var(value)) {
-        reg_t reg = this->getRegister(value, inst, NORMAL);
+        reg_t reg = this->getRegister(value, inst, type);
         this->regTable.updateRegisterValue(reg, value, false);
         return Address(A_R64, reg);
     }
