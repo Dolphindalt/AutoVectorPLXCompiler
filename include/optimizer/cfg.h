@@ -35,7 +35,6 @@ private:
     ) const;
 
     std::string name;
-    BlockSet blocks;
     BBP entryBlock;
     Dominator dominator;
     Reach reach;

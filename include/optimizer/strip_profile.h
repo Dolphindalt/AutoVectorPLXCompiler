@@ -16,10 +16,14 @@ public:
 private:
     void insertVectorInstructions();
 
+    bool canSquashLoop() const;
+
     BBP block;
     unsigned int factor;
     std::vector<tac_line_t> &iteration;
     bool vectorize;
+
+    std::vector<tac_line_t> vectorInsts;
 };
 
 #endif

@@ -18,6 +18,7 @@ using TIDSet = std::set<tac_line_t, decltype(set_id_cmp)>;
 
 class BasicBlock {
 public:
+    static void resetGlobalState();
     static unsigned int functionCount;
     static TIDSet globalVarDefinitions;
 
@@ -64,6 +65,7 @@ public:
 
     void computeGenAndKillSets();
 
+    std::string id_to_string() const;
     std::string to_string() const;
 private:
     static unsigned int basicBlockIdGenerator;

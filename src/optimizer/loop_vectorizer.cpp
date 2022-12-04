@@ -22,7 +22,7 @@ void LoopVectorizer::vectorize() {
 
     // Strip mine the loop.
     // By default, all variables are 8 bytes and fit into a 256 bit register.
-    //this->stripMineLoop(3);
+    this->stripMineLoop(4);
 }
 
 void LoopVectorizer::stripMineLoop(const unsigned int unroll) {

@@ -317,8 +317,13 @@ void NaturalLoop::duplicateLoopAfterThisLoop() {
     this->getHeader()->insertSuccessor(headerCopy);
 
     firstInLoopBody->insertPredecessor(headerCopy);
+    firstInLoopBody->removeSuccessor(exit);
+    headerCopy->insertSuccessor(firstInLoopBody);
 
     copyLoop.push_back(headerCopy);
+
+    headerCopy->insertSuccessor(exit);
+    exit->insertPredecessor(headerCopy);
 
     // Now TAC instructions and labels need to be made unique and reordered.
     for (BBP &bb : copyLoop) {

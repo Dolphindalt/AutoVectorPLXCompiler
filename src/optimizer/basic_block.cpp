@@ -2,6 +2,13 @@
 
 #include <algorithm>
 
+void BasicBlock::resetGlobalState() {
+    BasicBlock::functionCount = 0;
+    BasicBlock::globalVarDefinitions.clear();
+    BasicBlock::basicBlockIdGenerator = 0;
+    BasicBlock::minorIdGenerator = 0;
+}
+
 unsigned int BasicBlock::functionCount = 0;
 
 std::set<tac_line_t, decltype(set_id_cmp)> BasicBlock::globalVarDefinitions;
@@ -232,16 +239,19 @@ void BasicBlock::computeGenAndKillSets() {
     }
 }
 
+std::string BasicBlock::id_to_string() const {
+    return std::to_string(this->id) + "." + std::to_string(this->minorId);
+}
+
 std::string BasicBlock::to_string() const {
-    std::string label = "\"Basic Block " + std::to_string(this->id) + "." +
-        std::to_string(this->minorId) + "\\n";
+    std::string label = "\"Basic Block " + this->id_to_string() + "\\n";
     std::for_each(this->instructions.begin(), this->instructions.end(), 
         [&label](tac_line_t t) {
             label += TACGenerator::tacLineToString(t) + "\\n";
         }
     );
     label += "\"";
-    return std::to_string(this->getID()) + "[label=" + label + ", shape=box]";
+    return this->id_to_string() + "[label=" + label + ", shape=box]";
 }
 
 unsigned int BasicBlock::basicBlockIdGenerator = 0;

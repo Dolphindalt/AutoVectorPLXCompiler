@@ -52,6 +52,7 @@ typedef enum tac_op {
     // Vector instructions.
     TAC_VADD,
     TAC_VSUB,
+    TAC_VASSIGN,
     TAC_VLOAD,
     TAC_VSTORE
 } tac_op_t;
@@ -89,6 +90,7 @@ static std::map<tac_op_t, std::string> tacOpToStringMap = {
     {TAC_ARRAY_INDEX, "TAC_ARRAY_INDEX"},
     {TAC_VADD, "TAC_VADD"},
     {TAC_VSUB, "TAC_VSUB"},
+    {TAC_VASSIGN, "TAC_VASSIGN"},
     {TAC_VLOAD, "TAC_VLOAD"},
     {TAC_VSTORE, "TAC_VSTORE"}
 };

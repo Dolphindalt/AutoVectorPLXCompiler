@@ -31,6 +31,8 @@ CFG::CFG(BlockSet &allBlocks, std::string &name, BBP firstBlock) : name(name),
         }
         #endif
 
+        INFO_LOG("CFG after vectorization");
+        printf("%s\n\n", this->to_graph().c_str());
     }
 
 BBP CFG::getEntryBlock() const {
@@ -55,8 +57,8 @@ std::string CFG::to_graph() const {
 
         std::for_each(successors.begin(), successors.end(), 
             [&result, &block](BBP inner) {
-                result += "\t" + std::to_string(block->getID()) + 
-                    " -> " + std::to_string(inner->getID()) + "\n";
+                result += "\t" + block->id_to_string() + 
+                    " -> " + inner->id_to_string() + "\n";
             }
         );
     });
