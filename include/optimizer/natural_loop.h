@@ -65,7 +65,7 @@ public:
      * be dominated all the way until the footer. This allows for a traversal
      * of the loop using the dominance and DFS.
      */
-    void forEachBBInBody(std::function<void(BBP)> action);
+    void forEachBBInBody(std::function<void(BBP)> action) const;
 
     /**
      * A 3AC statement is a loop invariant if its operands
@@ -121,13 +121,15 @@ public:
      * optimizations by eliminating loops with conditional statements and 
      * loops that require intraprocedural analysis.
      */
-    bool isSimpleLoop() const;
+    bool isSimpleLoop();
 
     bool isInvariant(const std::string &value) const;
 
     bool isInductionVariable(const std::string &value) const;
 
     bool isSimpleInductionVariable(const std::string &value) const;
+
+    bool isNeverDefinedInLoop(const std::string &variable) const;
 
     BBP getExit() const;
 
@@ -136,7 +138,11 @@ public:
 
     const std::string to_string() const;
 private:
-    BBP findNextDommed(BBP bb) const;
+    void forEachBBInBodyInternal(
+        BBP current, 
+        std::function<void(BBP)> action,
+        std::set<BBP> &visited
+    ) const;
 
     BBP header;
     BBP footer;

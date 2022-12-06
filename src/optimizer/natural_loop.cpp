@@ -16,13 +16,11 @@ NaturalLoop::NaturalLoop(
     this->findInductionVariables();
 }
 
-void NaturalLoop::forEachBBInBody(std::function<void(BBP)> action) {
+void NaturalLoop::forEachBBInBody(std::function<void(BBP)> action) const {
     // Get the first block in the loop body.
     BBP current = this->footer;
-    while (current != nullptr) {
-        action(current);
-        current = this->findNextDommed(current);
-    }
+    std::set<BBP> visited;
+    this->forEachBBInBodyInternal(current, action, visited);
 }
 
 /**
@@ -362,21 +360,25 @@ void NaturalLoop::duplicateLoopAfterThisLoop() {
 
     // We need to insert the new blocks.
     for (auto bb : copyLoop) {
-        INFO_LOG("Copy loop BB: %d.%d", bb->getID(), bb->getMinorId());
         this->allBlocks.insert(bb);
     }
 
 }
 
-bool NaturalLoop::isSimpleLoop() const {
-    for (const tac_line_t &instruction : this->getFooter()->getInstructions()) {
-        if (tac_line_t::is_conditional_jump(instruction)) {
-            return false;
-        } else if (tac_line_t::is_procedure_call(instruction)) {
-            return false;
+bool NaturalLoop::isSimpleLoop() {
+    bool retValue = true;
+
+    this->forEachBBInBody([&retValue](BBP bb) {
+        for (const tac_line_t &instruction : bb->getInstructions()) {
+            if (tac_line_t::is_conditional_jump(instruction)) {
+                retValue = false;
+            } else if (tac_line_t::is_procedure_call(instruction)) {
+                retValue = false;
+            }
         }
-    }
-    return true;
+    });
+    
+    return retValue;
 }
 
 bool NaturalLoop::isInvariant(const std::string &value) const {
@@ -389,6 +391,14 @@ bool NaturalLoop::isInductionVariable(const std::string &value) const {
 
 bool NaturalLoop::isSimpleInductionVariable(const std::string &value) const {
     return this->simpleInductionVariables.count(value) > 0;
+}
+
+bool NaturalLoop::isNeverDefinedInLoop(const std::string &variable) const {
+    bool assigned = false;
+    this->forEachBBInBody([&assigned, &variable](BBP bb) {
+        assigned = assigned || !bb->isNeverDefined(variable);
+    });
+    return assigned;
 }
 
 BBP NaturalLoop::getExit() const {
@@ -413,17 +423,19 @@ const std::string NaturalLoop::to_string() const {
         std::to_string(this->getFooter()->getID()) + ")";
 }
 
-BBP NaturalLoop::findNextDommed(BBP bb) const {
-    if (this->header == bb) {
-        return nullptr;
+void NaturalLoop::forEachBBInBodyInternal(
+    BBP current, 
+    std::function<void(BBP)> action,
+    std::set<BBP> &visited
+) const {
+    if (current == this->header || visited.count(current) > 0) {
+        return;
     }
 
-    for (auto cand : bb->getPredecessors()) {
-        if (this->dom->dominates(cand, this->header) && cand != this->header) {
-            return cand;
-        }
-    }
+    action(current);
+    visited.insert(current);
 
-    // No dominance.
-    return nullptr;
+    for (BBP pred : current->getPredecessors()) {
+        this->forEachBBInBodyInternal(pred, action, visited);
+    }
 }

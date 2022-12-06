@@ -37,6 +37,18 @@ private:
         register_type_t type
     );
 
+    reg_t getRegisterForConstant(
+        const std::string &constant,
+        const tac_line_t &inst,
+        register_type_t type
+    );
+
+    reg_t getRegisterInternal(
+        const std::string &value,
+        const tac_line_t &inst,
+        register_type_t type
+    );
+
     Address allocateMemory(
         const std::string &value,
         std::shared_ptr<SymbolTable> symTable
@@ -53,12 +65,19 @@ private:
     void instertEpilogue();
 
     void insertDataSection();
+    void insertRODataSection();
 
     Address forceAddressIntoRegister(
         const std::string &value,
         const tac_line_t &inst,
         register_type_t type,
         bool isAddress
+    );
+
+    Address forceConstantIntoRegister(
+        const std::string &constant,
+        const tac_line_t &inst,
+        register_type_t type
     );
 
     void freeRegisters();
@@ -76,6 +95,7 @@ private:
     RegisterTable regTable;
     AddressTable stack;
     DataSection data;
+    RODataSection rodata;
     AsmFile asmFile;
     LivenessInfoTable liveness;
 

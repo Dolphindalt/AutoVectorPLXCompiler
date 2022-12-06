@@ -40,6 +40,18 @@ public:
      * elements are to be vectorized.
      */
     void stripMineLoop(const unsigned int unroll);
+
+    static bool isInstructionDependentOnIndex(
+        const NaturalLoop &loop,
+        const tac_line_t &inst,
+        const induction_variable_t &index
+    );
+
+    static bool isVariableDependentOnIndex(
+        const NaturalLoop &loop, 
+        const std::string &variable,
+        const induction_variable_t &index
+    );
 private:
     bool checkCanLoopBeVectorized();
     /**
@@ -66,6 +78,9 @@ private:
         bool &containedIterator,
         int &vector_out
     ) const;
+
+    // Assuming the loop is vectorized, should it be vectorized at all?
+    bool shouldVectorizeLoop() const;
 
     NaturalLoop &loop;
     bool canVectorize;

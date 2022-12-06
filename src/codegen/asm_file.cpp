@@ -12,6 +12,10 @@ void AsmFile::insertDataInstruction(const std::string &inst) {
     this->dataSectionLines.push_back(inst);
 }
 
+void AsmFile::insertRODataInstruction(const std::string &inst) {
+    this->roDataSectionLines.push_back(inst);
+}
+
 void AsmFile::insertTextInstruction(const std::string &inst) {
     this->textSectionLines.push_back(inst);
 }
@@ -40,6 +44,11 @@ const void AsmFile::to_file(const char *fileName) const {
     if (file == NULL) {
         ERROR_LOG("Failed to write to assembly file");
         exit(EXIT_FAILURE);
+    }
+
+    fprintf(file, ".section\t.rodata\n");
+    for (const std::string &line : this->roDataSectionLines) {
+        fprintf(file, "%s\n", line.c_str());
     }
 
     fprintf(file, ".data\n");

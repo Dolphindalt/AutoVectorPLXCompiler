@@ -11,6 +11,7 @@ using reg_t = std::string;
 
 typedef enum register_type {
     NORMAL,
+    XMM,
     AVX
 } register_type_t;
 
@@ -28,6 +29,25 @@ static std::set<reg_t> registers = {
     "\%r14",
     "\%r15",
     "\%rax"
+};
+
+static std::set<reg_t> xmmRegisters = {
+    "\%xmm0",
+    "\%xmm1",
+    "\%xmm2",
+    "\%xmm3",
+    "\%xmm4",
+    "\%xmm5",
+    "\%xmm6",
+    "\%xmm7",
+    "\%xmm8",
+    "\%xmm9",
+    "\%xmm10",
+    "\%xmm11",
+    "\%xmm12",
+    "\%xmm13",
+    "\%xmm14",
+    "\%xmm15"
 };
 
 static std::set<reg_t> vectorRegisters = {
@@ -82,6 +102,8 @@ public:
     const std::set<reg_t> getRegistersInUse(const register_type_t type) const;
 
     const std::map<reg_t, std::string> &getValueMap() const;
+
+    bool isRegisterOfType(const reg_t reg, const register_type_t type) const;
 private:
     const std::set<reg_t> &selectRegisters(const register_type_t type) const;
 
@@ -122,6 +144,32 @@ public:
     const std::map<std::string, unsigned int> &getDataObjects() const;
 private:
     std::map<std::string, unsigned int> dataKeys;
+};
+
+typedef struct rodata {
+    unsigned int alignment;
+    unsigned int sizeBytes;
+    int64_t value;
+} rodata_t;
+
+class RODataSection {
+public:
+    static std::string labelPrefix;
+
+    RODataSection();
+
+    std::string insert(
+        const unsigned int alignment, 
+        const unsigned int sizeBytes,
+        const int64_t value
+    );
+
+    bool contains(const std::string &name) const;
+    
+    const std::map<std::string, rodata_t> &getMap() const;
+private:
+
+    std::map<std::string, rodata_t> dataMap;
 };
 
 #endif

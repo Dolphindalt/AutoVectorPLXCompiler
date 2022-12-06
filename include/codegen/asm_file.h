@@ -9,6 +9,7 @@ public:
     AsmFile();
 
     void insertDataInstruction(const std::string &inst);
+    void insertRODataInstruction(const std::string &inst);
     void insertTextInstruction(const std::string &inst);
     void insertTextInstruction(const std::string &inst, unsigned int offset);
     void replaceTextInstruction(const std::string &inst, unsigned int offset);
@@ -17,6 +18,7 @@ public:
     const void to_file(const char *fileName) const;
 private:
     std::vector<std::string> dataSectionLines;
+    std::vector<std::string> roDataSectionLines;
     std::vector<std::string> textSectionLines;
 };
 

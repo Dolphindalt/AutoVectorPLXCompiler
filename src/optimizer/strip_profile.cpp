@@ -1,13 +1,17 @@
 #include <optimizer/strip_profile.h>
 
 #include <functional>
+#include <optimizer/loop_vectorizer.h>
 
 StripProfile::StripProfile(
+    const NaturalLoop &loop,
     BBP bb, 
     const unsigned int factor, 
     std::vector<tac_line_t> &iteration,
-    const bool vectorize
-) : block(bb), factor(factor), iteration(iteration), vectorize(vectorize) {
+    const bool vectorize,
+    induction_variable_t &iterator
+) : loop(loop), block(bb), factor(factor), iteration(iteration), 
+    vectorize(vectorize), iterator(iterator) {
     if (this->vectorize) {
         this->insertVectorInstructions();
     }
@@ -69,9 +73,23 @@ void StripProfile::insertVectorInstructions() {
             case TAC_ARRAY_INDEX:
                 // We will generate indexes as load and stores when they are
                 // used.
-                arrayVarInfo.insert(std::make_pair(inst.result, inst));
-                this->iteration.erase(i);
-                i--;
+                if (
+                    LoopVectorizer::isInstructionDependentOnIndex(
+                        this->loop, inst, iterator
+                    )
+                    &&
+                    !this->arrayExpressionUsesIterator(
+                        inst, this->getNextUseOfResult(i)
+                    )
+                ) {
+                    INFO_LOG(
+                        "Choosing to vectorize array index %s",
+                        TACGenerator::tacLineToString(inst).c_str()
+                    );
+                    arrayVarInfo.insert(std::make_pair(inst.result, inst));
+                    this->iteration.erase(i);
+                    i--;
+                }
                 break;
             case TAC_ADD:
             case TAC_SUB: {
@@ -124,6 +142,19 @@ void StripProfile::insertVectorInstructions() {
                     this->vectorInsts.push_back(store);
                     i--;
                 }
+                // Otherwise, we can end up with a form arr = var.
+                else if (isArrayVar(inst.result) && !isArrayVar(inst.argument1)) {
+                    this->vectorInsts
+                        .push_back(makeInstCpyN(inst, TAC_VASSIGN));
+                    this->iteration.erase(i);
+
+                    // The result needs to be stored.
+                    tac_line_t store = makeInstCpyN(
+                        arrayVarInfo.at(inst.result), TAC_VSTORE
+                    );
+                    this->vectorInsts.push_back(store);
+                    i--;
+                }
             }
             default:
                 break;
@@ -148,6 +179,88 @@ void StripProfile::insertVectorInstructions() {
         this->vectorInsts.push_back(iterator);
     }
 
+}
+
+tac_line_t StripProfile::getNextUseOfResult(
+    std::vector<tac_line_t>::iterator i
+) const {
+    const tac_line_t &first_inst = *i;
+    i++;
+
+    while (i != this->iteration.end()) {
+        WARNING_LOG("i %s", TACGenerator::tacLineToString(*i).c_str());
+        const tac_line_t &curr_inst = *i;
+        if (curr_inst.argument1 == first_inst.result || 
+            curr_inst.argument2 == first_inst.result ||
+            curr_inst.result == first_inst.result) {
+                return curr_inst;
+            }
+        i++;
+    }
+
+    return first_inst;
+}
+
+bool StripProfile::arrayExpressionUsesIterator(
+    const tac_line_t &arrOp,
+    const tac_line_t &next_use
+) const {
+    INFO_LOG("Next use: %s", TACGenerator::tacLineToString(next_use).c_str());
+
+    if (arrOp == next_use) {
+        return false;
+    } else if (next_use.argument1 == arrOp.argument1) {
+        return this->isVariableDependentOnIndex(next_use.argument2);
+    } else {
+        return this->isVariableDependentOnIndex(next_use.argument1);
+    }
+}
+
+bool StripProfile::isVariableDependentOnIndex(
+    const std::string &variable
+) const {
+    if (variable == "") {
+        return false;
+    }
+
+    if (variable == this->iterator.inductionVar) {
+        return true;
+    }
+
+    std::vector<BBP> loopBody;
+    this->loop.forEachBBInBody([&loopBody](BBP bb) {
+        loopBody.push_back(bb);
+    });
+
+    for (BBP bb : loopBody) {
+
+        if (bb->getDefChain().count(variable) > 0) {
+
+            const std::vector<tac_line_t> &definitions = 
+                bb->getDefChain().at(variable);
+            
+            for (const tac_line_t &inst : definitions) {
+                if (inst.operation == TAC_ARRAY_INDEX) {
+                    continue;
+                }
+
+                if (inst.result == this->iterator.inductionVar) {
+                    return true;
+                }
+
+                if (inst.result == variable && inst.operation == TAC_ARRAY_INDEX) {
+                    continue;
+                }
+
+                return this->isVariableDependentOnIndex(inst.argument1) 
+                    || this->isVariableDependentOnIndex(inst.argument2);
+            }
+
+        }
+
+    }
+
+    return false;
 }
 
 bool StripProfile::canSquashLoop() const {

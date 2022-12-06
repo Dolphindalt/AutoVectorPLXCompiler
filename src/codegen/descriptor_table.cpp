@@ -28,6 +28,8 @@ reg_t RegisterTable::getUsedRegister(const register_type_t type) const {
     switch (type) {
         case NORMAL:
             return "r8";
+        case XMM:
+            return "xmm15";
         case AVX:
             return "ymm15";
         default:
@@ -104,20 +106,7 @@ bool RegisterTable::isRegisterUpdated(const reg_t &reg) const {
 const std::set<reg_t> RegisterTable::getRegistersInUse(
     const register_type_t type
 ) const {
-    std::set<reg_t> regSet;
-
-    switch (type) {
-        case NORMAL:
-            regSet = registers;
-            break;
-        case AVX:
-            regSet = vectorRegisters;
-            break;
-        default:
-            ERROR_LOG("invalid register type");
-            exit(EXIT_FAILURE);
-    }
-
+    std::set<reg_t> regSet = this->selectRegisters(type);
     std::set<reg_t> result;
     for (const reg_t &reg : regSet) {
         if (!this->isRegisterUnused(reg)) {
@@ -132,12 +121,20 @@ const std::map<reg_t, std::string> &RegisterTable::getValueMap() const {
     return this->valueMap;
 }
 
+bool RegisterTable::isRegisterOfType(
+    const reg_t reg, const register_type_t type
+) const {
+    return this->selectRegisters(type).count(reg) > 0;
+}
+
 const std::set<reg_t> &RegisterTable::selectRegisters(
     const register_type_t type
 ) const {
     switch (type) {
         case NORMAL:
             return registers;
+        case XMM:
+            return xmmRegisters;
         case AVX:
             return vectorRegisters;
         default:
@@ -195,4 +192,29 @@ bool DataSection::isVariableInDataSection(const std::string &name) const {
 
 const std::map<std::string, unsigned int> &DataSection::getDataObjects() const {
     return this->dataKeys;
+}
+
+std::string RODataSection::labelPrefix = "LC";
+
+RODataSection::RODataSection() {}
+
+std::string RODataSection::insert(
+    const unsigned int alignment,
+    const unsigned int sizeBytes,
+    const int64_t value
+) {
+    const std::string label = this->labelPrefix + std::to_string(value);
+    
+    rodata_t rodata = { alignment, sizeBytes, value };
+    this->dataMap.insert(std::make_pair(label, rodata));
+    return label;
+}
+
+bool RODataSection::contains(const std::string &name) const {
+    const std::string label = this->labelPrefix + name;
+    return this->dataMap.count(label) > 0;
+}
+
+const std::map<std::string, rodata_t> &RODataSection::getMap() const {
+    return this->dataMap;
 }

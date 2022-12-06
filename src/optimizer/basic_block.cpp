@@ -224,6 +224,10 @@ const tac_line_t &BasicBlock::getFirstLabel() const {
     exit(EXIT_FAILURE);
 }
 
+bool BasicBlock::isNeverDefined(const std::string &variable) const {
+    return this->defChain.count(variable) == 0;
+}
+
 void BasicBlock::computeGenAndKillSets() {
     this->killed = TIDSet(this->localVariableDefinitions);
     for (

@@ -3,7 +3,20 @@ begin
     i := 0;
     while i < 20 do
     begin
+        a[i] := 5 + i;
+        b[i] := 10;
+        i := i + 1
+    end;
+    i := 0;
+    while i < 20 do
+    begin
         c[i] := a[i] + b[i];
+        i := i + 1
+    end;
+    i := 0;
+    while i < 20 do
+    begin
+        !c[i];
         i := i + 1
     end
 end.

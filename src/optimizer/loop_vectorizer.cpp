@@ -13,7 +13,14 @@ void LoopVectorizer::vectorize() {
     if (this->canVectorize) {
         INFO_LOG("Can vectorize loop %s", loop.to_string().c_str());
     } else {
-        WARNING_LOG("Cannot vectorized loop %s", loop.to_string().c_str());
+        WARNING_LOG("Cannot vectorize loop %s", loop.to_string().c_str());
+        return;
+    }
+
+    if (!this->shouldVectorizeLoop()) {
+        WARNING_LOG(
+            "Declined to vectorize loop %s", loop.to_string().c_str()
+        );
         return;
     }
 
@@ -43,8 +50,65 @@ void LoopVectorizer::stripMineLoop(const unsigned int unroll) {
         }
     });
 
-    StripProfile profile(this->loop.getFooter(), unroll, instructionGroup, true);
+    StripProfile profile(
+        this->loop, 
+        this->loop.getFooter(), 
+        unroll, 
+        instructionGroup, 
+        true, 
+        this->index
+    );
+
     profile.unroll();
+}
+
+bool LoopVectorizer::isInstructionDependentOnIndex(
+    const NaturalLoop &loop,
+    const tac_line_t &inst,
+    const induction_variable_t &index
+) {
+    return isVariableDependentOnIndex(loop, inst.argument2, index) || 
+        isVariableDependentOnIndex(loop, inst.argument1, index);
+}
+
+bool LoopVectorizer::isVariableDependentOnIndex(
+    const NaturalLoop &loop,
+    const std::string &variable,
+    const induction_variable_t &index
+) {
+    if (variable == "") {
+        return false;
+    }
+
+    if (variable == index.inductionVar) {
+        return true;
+    }
+
+    std::vector<BBP> loopBody;
+    loop.forEachBBInBody([&loopBody](BBP bb) {
+        loopBody.push_back(bb);
+    });
+
+    for (BBP bb : loopBody) {
+
+        if (bb->getDefChain().count(variable) > 0) {
+
+            const std::vector<tac_line_t> &definitions = 
+                bb->getDefChain().at(variable);
+            
+            for (const tac_line_t &inst : definitions) {
+                if (inst.result == index.inductionVar) {
+                    return true;
+                }
+                return LoopVectorizer::isInstructionDependentOnIndex(
+                    loop, inst, index);
+            }
+
+        }
+
+    }
+
+    return false;
 }
 
 bool LoopVectorizer::checkCanLoopBeVectorized() {
@@ -54,7 +118,7 @@ bool LoopVectorizer::checkCanLoopBeVectorized() {
         return false;
     }
 
-    bool foundIterator = loop.identifyLoopIterator(index);
+    bool foundIterator = loop.identifyLoopIterator(this->index);
     if (!foundIterator) {
         WARNING_LOG(FAIL_MESSAGE "Failed to determine loop iterator");
         return false;
@@ -62,7 +126,7 @@ bool LoopVectorizer::checkCanLoopBeVectorized() {
 
     // We will only vectorize loops of simple induction variables that 
     // increment by 1 (makes strip mining easier).
-    if (index.constant != "1") {
+    if (this->index.constant != "1") {
         WARNING_LOG(FAIL_MESSAGE "Increment is not 1");
         return false;
     }
@@ -202,4 +266,28 @@ bool LoopVectorizer::getDistanceVectorFromVariable(
 
     // Not constant and defined outside the loop, so we don't know.
     return false;
+}
+
+bool LoopVectorizer::shouldVectorizeLoop() const {
+    unsigned int arrayWrites = 0;
+    std::set<std::string> arrayVariables;
+    this->loop.forEachBBInBody(
+        [&arrayWrites, &arrayVariables, this](BBP bb) {
+            for (const tac_line_t &inst : bb->getInstructions()) {
+                if (
+                    inst.operation == TAC_ARRAY_INDEX && 
+                    LoopVectorizer::isInstructionDependentOnIndex(
+                        loop, inst, index)
+                    ) {
+                        arrayVariables.insert(inst.result);
+                } else if (arrayVariables.count(inst.result) > 0) {
+                    arrayWrites++;
+                }
+            }
+        }
+    );
+
+    bool shouldVectorize = arrayWrites > 0;
+
+    return shouldVectorize;
 }

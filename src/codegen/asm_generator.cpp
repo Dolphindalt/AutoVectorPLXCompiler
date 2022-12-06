@@ -82,6 +82,7 @@ void AssemblyGenerator::generateAssembly(
     this->insertPrologue();
     this->instertEpilogue();
 
+    this->insertRODataSection();
     this->insertDataSection();
 
     this->asmFile.to_file("output.s");
@@ -395,17 +396,64 @@ void AssemblyGenerator::generateAssemblyFromTAC(const tac_line_t &instruction) {
             break;
         }
         case TAC_VASSIGN: {
-            // This is an alias that remains due to how additions are normally 
-            // handled. This instruction effectively does nothing.
             const Address old = this->getLocation(
                 instruction.argument1,
                 instruction,
                 AVX
             );
-            ASSERT(old.isRegister());
-            this->regTable.updateRegisterValue(
-                old.address(), instruction.result, false
-            );
+
+            // This is an alias that remains due to how additions are normally 
+            // handled. This instruction effectively does nothing.
+            if (old.isRegister() && 
+                this->regTable.isRegisterOfType(old.address(), AVX)) {
+                    this->regTable.updateRegisterValue(
+                        old.address(), instruction.result, false
+                    );
+            }
+            // Or this is an assignment to constant.
+            else if (instruction.is_operand_constant(instruction.argument1)) {
+                // If I had AVX512, then vbroadvastd could do all of this.
+                const std::string dataLabel = RODataSection::labelPrefix + 
+                    instruction.argument1;
+                
+                if (!rodata.contains(dataLabel)) {
+                    rodata.insert(8, 16, atoi(instruction.argument1.c_str()));
+                }
+
+                const reg_t res_reg = this->getRegister(
+                    instruction.result, instruction, AVX
+                );
+
+                const reg_t temp_xmm = 
+                    "\%x" + res_reg.substr(2, std::string::npos);
+
+                this->asmFile.insertTextInstruction(
+                    "\tmovups " + dataLabel + ", " + temp_xmm
+                );
+
+                this->asmFile.insertTextInstruction(
+                    "\tvperm2f128 $0x00, " + res_reg + ", " + res_reg + ", " + 
+                        res_reg
+                );
+            }
+            // Or an assignment to some value that is in a register.
+            else if (old.isRegister()) {
+                const reg_t temp_reg = this->getRegister(
+                    instruction.argument1, instruction, AVX
+                );
+
+                const reg_t xmmReg = 
+                    this->getRegister(instruction.argument1, instruction, XMM);
+                this->asmFile.insertTextInstruction(
+                    "\tmovups " + old.address() + ", " + xmmReg  
+                );
+
+                this->asmFile.insertTextInstruction(
+                    "\tvpbroadcastd " + xmmReg + ", " + temp_reg
+                );
+
+                this->regTable.freeRegister(xmmReg);
+            }
             break;
         }
         default:
@@ -421,10 +469,10 @@ Address AssemblyGenerator::getLocation(
 ) {
     st_entry_t sym_entry;
     unsigned int level;
-    inst.table->lookup(value, &level, &sym_entry);
+    bool success = inst.table->lookup(value, &level, &sym_entry);
 
     // First, see if the value is a literal, which is in the text section.
-    if (sym_entry.entry_type == ST_LITERAL) {
+    if (success && sym_entry.entry_type == ST_LITERAL) {
         // This is a literal.
         return Address(A_IMM64, value);
     }
@@ -480,12 +528,28 @@ reg_t AssemblyGenerator::getRegister(
     st_entry_t sym_entry;
     unsigned int _level;
     bool found = inst.table->lookup(value, &_level, &sym_entry);
-    ASSERT(sym_entry.entry_type != ST_CODE_GEN);
+    ASSERT(!found || sym_entry.entry_type != ST_CODE_GEN);
 
     if (found && sym_entry.entry_type == ST_LITERAL) {
         return "$" + sym_entry.token.lexeme;
     }
 
+    return this->getRegisterInternal(value, inst, type);
+}
+
+reg_t AssemblyGenerator::getRegisterForConstant(
+    const std::string &constant,
+    const tac_line_t &inst,
+    register_type_t type
+) {
+    return this->getRegisterInternal(constant, inst, type);
+}
+
+reg_t AssemblyGenerator::getRegisterInternal(
+    const std::string &value,
+    const tac_line_t &inst,
+    register_type_t type
+) {
     liveness_info_t liveness = this->liveness.get(inst.bid);
 
     const bool isDead = liveness.result.liveness == CG_DEAD;
@@ -508,9 +572,6 @@ reg_t AssemblyGenerator::getRegister(
 
         return unlucky;
     }
-
-    ASSERT(false);
-    return "";
 }
 
 Address AssemblyGenerator::allocateMemory(
@@ -614,7 +675,7 @@ void AssemblyGenerator::instertEpilogue() {
 }
 
 void AssemblyGenerator::insertDataSection() {
-    for (auto kv : AssemblyGenerator::data.getDataObjects()) {
+    for (auto kv : this->data.getDataObjects()) {
         const std::string &value = kv.first;
         const unsigned int size = kv.second;
 
@@ -625,6 +686,28 @@ void AssemblyGenerator::insertDataSection() {
                 value + ": .zero " + std::to_string(size*8)
             );
         }
+    }
+}
+
+void AssemblyGenerator::insertRODataSection() {
+    for (const auto &kv : this->rodata.getMap()) {
+        const std::string &label = kv.first;
+        const rodata_t &metadata = kv.second;
+
+        std::string line = "";
+
+        if (metadata.alignment != 0) {
+            line += ".align " + std::to_string(metadata.alignment) + "\n";
+        } 
+
+        line += label + ":\n";
+
+        for (unsigned int i = metadata.sizeBytes; i != 0; i -= 8) {
+            line += ".quad " + std::to_string(metadata.value) + "\n";
+        }
+        line.pop_back();
+
+        this->asmFile.insertRODataInstruction(line);
     }
 }
 

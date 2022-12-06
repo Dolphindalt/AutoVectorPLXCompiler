@@ -62,6 +62,7 @@ public:
     const std::map<std::string, std::vector<tac_line_t>> &getDefChain() const;
     const std::map<std::string, std::vector<tac_line_t>> &getUseChain() const;
     const tac_line_t &getFirstLabel() const;
+    bool isNeverDefined(const std::string &variable) const;
 
     void computeGenAndKillSets();
 
