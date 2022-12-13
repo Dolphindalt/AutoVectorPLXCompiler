@@ -111,6 +111,7 @@ bool tac_line_t::is_simple() const {
     switch (this->operation) {
         case TAC_NEGATE:
         case TAC_ASSIGN ... TAC_ARRAY_INDEX:
+        case TAC_VADD ... TAC_VSTORE:
             return true;
         default:
             break;

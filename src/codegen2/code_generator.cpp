@@ -95,13 +95,16 @@ void CodeGenerator::generateFrom3AC(
             break;
         case TAC_VADD:
         case TAC_VSUB:
-
+            this->generateGeneralYmmOperation(inst, liveness);
             break;
         case TAC_VLOAD:
+            this->generateYmmLoad(liveness, inst);
             break;
         case TAC_VSTORE:
+            this->generateYmmStore(liveness, inst);
             break;
         case TAC_VASSIGN:
+            this->generateYmmAssign(liveness, inst);
             break;
         default:
             ERROR_LOG(
@@ -258,6 +261,98 @@ void CodeGenerator::generateLabel(const std::string &labelName) {
     this->context.insertText(
         tac_line_t::extract_label(labelName) + ": "
     );
+}
+
+void CodeGenerator::generateGeneralYmmOperation(
+    const tac_line_t &inst,
+    const LivenessTable &liveness
+) {
+    LivenessMap lmap = liveness.getLivenessAndNextUse(inst.bid);
+
+    const Location lhs = this->addressTable.getLocation(inst.argument1);
+    ASSERT(lhs.inRegister());
+    const Location rhs = this->addressTable.getLocation(inst.argument2);
+    ASSERT(rhs.inRegister());
+
+    RegPtr result;
+    if (!lmap.isLive(inst.argument1) && !lmap.hasNextUse(inst.argument1)) {
+        result = lhs.getRegister();
+    } 
+    else if (!lmap.isLive(inst.argument2) && !lmap.hasNextUse(inst.argument2)) {
+        result = rhs.getRegister();
+    } else {
+        result = this->getRegister(liveness, inst.result, inst.bid, AVX);
+    }
+
+    const std::string instStr = this->tacToInstruction(inst.operation);
+
+    this->context.insertText("\t" + instStr + " " + 
+        lhs.getRegister()->getName() + ", " + rhs.getRegister()->getName() +
+            ", " + result->getName()
+    );
+
+    this->addressTable.insert(inst.result, Location(LT_REGISTER).setReg(result));
+    this->regTable.setRegisterValue(result, inst.result);
+}
+
+void CodeGenerator::generateYmmLoad(
+    const LivenessTable &liveness,
+    const tac_line_t &inst
+) {
+    const RegPtr idxReg = 
+        this->forceRegister(liveness, inst.argument2, inst.bid, GPR);
+
+    const RegPtr arrayReg = 
+        this->forceRegister(liveness, inst.argument1, inst.bid, GPR, true);
+
+    const std::string memory = 
+        "(" + arrayReg->getName() + ", " + idxReg->getName() + ", 8)";
+
+    RegPtr result =
+        this->getRegister(liveness, inst.result, inst.bid, AVX, false);
+    
+    this->context.insertText("\tvmovapd " + memory + ", " + result->getName());
+
+    this->addressTable.insert(inst.result, Location(LT_REGISTER).setReg(result));
+    this->regTable.setRegisterValue(result, inst.result);
+}
+
+void CodeGenerator::generateYmmStore(
+    const LivenessTable &liveness,
+    const tac_line_t &inst
+) {
+    const RegPtr idxReg = 
+        this->forceRegister(liveness, inst.argument2, inst.bid, GPR);
+
+    const RegPtr arrayReg = 
+        this->forceRegister(liveness, inst.argument1, inst.bid, GPR, true);
+
+    const std::string memory = 
+        "(" + arrayReg->getName() + ", " + idxReg->getName() + ", 8)";
+
+    RegPtr result =
+        this->getRegister(liveness, inst.result, inst.bid, AVX);
+    
+    this->context.insertText("\tvmovapd " + result->getName() + ", " + memory);
+}
+
+void CodeGenerator::generateYmmAssign(
+    const LivenessTable &liveness,
+    const tac_line_t &inst
+) {
+    const Location location = this->addressTable.getLocation(inst.argument1);
+
+    const RegPtr result = 
+        this->getRegister(liveness, inst.result, inst.bid, AVX);
+
+    if (location.inRegister()) {
+        this->context.insertText(
+            "\tvmovapd " + location.address() + ", " + result->getName()
+        );
+        this->addressTable
+            .insert(inst.result, Location(LT_REGISTER).setReg(result));
+        this->regTable.setRegisterValue(result, inst.argument1);
+    }
 }
 
 RegPtr CodeGenerator::getRegister(
@@ -467,6 +562,10 @@ std::string CodeGenerator::tacToInstruction(const tac_op_t operation) const {
             return "idiv";
         case TAC_LESS_THAN ... TAC_NOT_EQUALS:
             return "cmp";
+        case TAC_VADD:
+            return "vaddpd";
+        case TAC_VSUB:
+            return "vsubpd";
         default:
             break;
     }

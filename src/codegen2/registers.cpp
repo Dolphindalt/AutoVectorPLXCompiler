@@ -8,6 +8,16 @@ std::string Register::getName() const {
     return "\%" + this->name;
 }
 
+std::string Register::getLowerName() const {
+    if (this->name.at(1) == 'm' && this->name.at(2) == 'm') {
+        return "\%x" + this->name.substr(1, std::string::npos);
+    } else if (isdigit(this->name.at(1))) {
+        return this->getName();
+    } else {
+        return "\%e" + this->name.substr(1, std::string::npos);
+    }
+}
+
 std::string Register::getNameAsMemory() const {
     return "(\%" + this->name + ")";
 }

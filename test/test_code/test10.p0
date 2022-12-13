@@ -1,10 +1,11 @@
-var int i, int[100] a;
+var int i, int[2] a;
 begin
     i := 0;
-    while i < 100 do
+    while i < 2 do
     begin
         a[i] := i;
         i := i + 1
     end;
-    !a[i-1];
+    !a[0];
+    !a[1]
 end.

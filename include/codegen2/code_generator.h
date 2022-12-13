@@ -57,6 +57,26 @@ private:
 
     void generateLabel(const std::string &labelName);
 
+    void generateGeneralYmmOperation(
+        const tac_line_t &inst,
+        const LivenessTable &liveness
+    );
+
+    void generateYmmLoad(
+        const LivenessTable &liveness,
+        const tac_line_t &inst
+    );
+
+    void generateYmmStore(
+        const LivenessTable &liveness,
+        const tac_line_t &inst
+    );
+
+    void generateYmmAssign(
+        const LivenessTable &liveness,
+        const tac_line_t &inst
+    );
+
     RegPtr getRegister(
         const LivenessTable &liveness,
         const std::string &variable, 

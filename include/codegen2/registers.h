@@ -23,6 +23,7 @@ public:
     Register(const std::string name);
 
     std::string getName() const;
+    std::string getLowerName() const;
     std::string getNameAsMemory() const;
 
     bool operator<(const Register &rhs) const {
