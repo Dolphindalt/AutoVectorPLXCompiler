@@ -10,7 +10,7 @@
 #include <string>
 #include <functional>
 
-#define AUTOMATIC_VECTORIZATION_ENABLED
+#undef AUTOMATIC_VECTORIZATION_ENABLED
 
 class CFG {
 public:

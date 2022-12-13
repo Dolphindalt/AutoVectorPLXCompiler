@@ -12,7 +12,8 @@
 #include <past.h>
 #include <3ac.h>
 #include <optimizer/optimizer.h>
-#include <codegen/asm_generator.h>
+//#include <codegen/asm_generator.h>
+#include <codegen2/code_generator.h>
 
 const char *argp_program_version = "Dalton\'s Toy Compiler";
 const char *argp_program_bug_address = "dpcaron@csu.fullerton.edu";
@@ -79,10 +80,17 @@ int main(int argc, char *argv[]) {
     ast->generateCode(tacGenerator, tacCode);
     ast = nullptr;
 
+    INFO_LOG("TAC Code before optimizer");
+    for (const tac_line_t &inst : tacCode) {
+        INFO_LOG("%s", TACGenerator::tacLineToString(inst).c_str());
+    }
+
     Optimizer optimizer(tacCode);
 
-    AssemblyGenerator generator;
-    generator.generateAssembly(optimizer.getBlocks());
+    //AssemblyGenerator generator;
+    //generator.generateAssembly(optimizer.getBlocks());
+    CodeGenerator generator;
+    generator.generate(optimizer.getBlocks());
 
     return EXIT_SUCCESS;
 }

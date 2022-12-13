@@ -1,0 +1,6 @@
+const int x = 10, int y = 5;
+var int z;
+begin
+    z := x * y;
+    !z
+end.

@@ -14,8 +14,7 @@ bool tac_line_t::transfers_control(const tac_line_t &line) {
         case TAC_JMP_LE:
         case TAC_JMP_NE:
         case TAC_JMP_ZERO:
-        // Yes, function calls count as a jump.
-        case TAC_CALL:
+        // Yes, function calls count as a jump, but not here.
             return true;
         default:
             break;
@@ -102,6 +101,21 @@ bool tac_line_t::is_operand_constant(const std::string &value) const {
 
     return success && (entry.entry_type == ST_LITERAL || 
         (entry.entry_type == ST_VARIABLE && entry.variable.isConstant));
+}
+
+bool tac_line_t::is_simple() const {
+    if (this->argument1 == "" && this->argument2 == "") {
+        return false;
+    }
+
+    switch (this->operation) {
+        case TAC_NEGATE:
+        case TAC_ASSIGN ... TAC_ARRAY_INDEX:
+            return true;
+        default:
+            break;
+    }
+    return false;
 }
 
 std::string TACGenerator::tacLineToString(const tac_line_t &tac) {

@@ -111,6 +111,7 @@ public:
     static bool is_user_defined_var(const std::string &var);
     static bool is_read_or_write(const tac_line &line);
     bool is_operand_constant(const std::string &value) const;
+    bool is_simple() const;
     void new_id();
     
     inline bool operator==(tac_line const &rhs) const {

@@ -41,17 +41,8 @@ bool Preprocessor::applyRedundantRewriteRule(tac_line_t &i1, tac_line_t &i2) {
         if (i2.argument1 == i1.result && i1.result.at(0) == '$' && 
             isArray.count(i2.result) == 0) {
 
-            // x = x op y
-            if (i1.argument1 == i2.result) {
-                i1.result = i1.argument1;
-            }
-
-            // x = y op x
-            if (i1.argument2 == i2.result) {
-                i1.result = i1.argument2;
-            }
-
-            return true;
+                i1.result = i2.result;
+                return true;
         }
     }
     return false;

@@ -6,7 +6,8 @@ begin
     begin
         while j < cap do
         begin
-            j := j + 1
+            j := j + 1;
+            !j
         end;
         i := i + 1
     end;
