@@ -15,6 +15,12 @@ static std::string locationTypeToString(const location_type_t loc) {
 
 static RegPtr dummyRegister = std::make_shared<Register>("dummy");
 
+std::string Location::largeImmediatesPrefix = "LIM";
+
+std::string Location::getLargeImmediateName(const std::string &previousName) {
+    return Location::largeImmediatesPrefix + previousName;
+}
+
 Location::Location() : type(LT_DUMMY), stackOffset(0), reg(dummyRegister) {}
 
 Location::Location(const location_type_t &type) : type(type), stackOffset(0),

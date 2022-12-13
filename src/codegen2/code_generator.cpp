@@ -35,10 +35,6 @@ void CodeGenerator::generateFrom3AC(
     const tac_line_t &inst,
     const LivenessTable &liveness
 ) {
-    INFO_LOG("%s", this->addressTable.to_string().c_str());
-    INFO_LOG("%s", this->regTable.to_string().c_str());
-    INFO_LOG("%s", TACGenerator::tacLineToString(inst).c_str());
-
     this->context.comment(TACGenerator::tacLineToString(inst));
 
     // If there are any literals, they need to be stored in the address table.
@@ -340,19 +336,59 @@ void CodeGenerator::generateYmmAssign(
     const LivenessTable &liveness,
     const tac_line_t &inst
 ) {
-    const Location location = this->addressTable.getLocation(inst.argument1);
+    Location location = this->addressTable.getLocation(inst.argument1);
 
     const RegPtr result = 
         this->getRegister(liveness, inst.result, inst.bid, AVX);
 
-    if (location.inRegister()) {
-        this->context.insertText(
-            "\tvmovapd " + location.address() + ", " + result->getName()
-        );
-        this->addressTable
-            .insert(inst.result, Location(LT_REGISTER).setReg(result));
-        this->regTable.setRegisterValue(result, inst.argument1);
+    if (location.isImmediate()) {
+        location = this->getLargeImmediate(location); 
+    } else {
+        ASSERT(location.inRegister());
     }
+
+    this->context.insertText(
+        "\tvmovapd " + location.address() + ", " + result->getName()
+    );
+    this->addressTable
+        .insert(inst.result, Location(LT_REGISTER).setReg(result));
+    this->regTable.setRegisterValue(result, inst.argument1);
+}
+
+Location CodeGenerator::getLargeImmediate(const Location immediate) {
+    ASSERT(immediate.isImmediate());
+
+    const std::string lMemName = 
+        Location::getLargeImmediateName(immediate.getImmValueOrGlobal());
+
+    if (!this->addressTable.contains(lMemName)) {
+        this->convertImmediateInto256MemoryRegion(immediate);
+    }
+
+    return this->addressTable.getLocation(lMemName);
+}
+
+void CodeGenerator::convertImmediateInto256MemoryRegion(
+    const Location immediate
+) {
+    ASSERT(immediate.isImmediate());
+
+    const std::string lMemName = 
+        Location::getLargeImmediateName(immediate.getImmValueOrGlobal());
+
+    const unsigned int ymmSizeBytes = 32;
+
+    this->globalTable.insertGlobalVariable(lMemName, ymmSizeBytes);
+    this->context.insertGlobalVariable(
+        lMemName, 
+        ymmSizeBytes, 
+        atoi(immediate.getImmValueOrGlobal().c_str()), 
+        32
+    );
+    this->addressTable
+        .insert(lMemName, Location(LT_MEMORY_GLOBAL)
+            .setImmValueOrGlobal(lMemName)
+        );
 }
 
 RegPtr CodeGenerator::getRegister(
@@ -411,7 +447,6 @@ RegPtr CodeGenerator::forceRegister(
                 RegPtr reg = 
                     this->getRegister(liveness, variable, instid, type, address);
                 
-                WARNING_LOG("Generating a movq with the address");
                 this->context.insertText(
                     "\tmovq " + location.address(true) + ", " + reg->getName()
                 );

@@ -21,7 +21,8 @@ public:
     void insertGlobalVariable(
         const std::string &name,
         const unsigned int size,
-        const unsigned int value
+        const unsigned int value,
+        const unsigned int alignment=8
     );
 
     void to_file(const char *fileName) const;

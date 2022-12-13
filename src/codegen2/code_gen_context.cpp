@@ -51,10 +51,12 @@ void CodeGenContext::insertGlobalArray(
 void CodeGenContext::insertGlobalVariable(
     const std::string &name,
     const unsigned int size,
-    const unsigned int value
+    const unsigned int value,
+    const unsigned int alignment
 ) {
     ASSERT(size % 8 == 0);
-    std::string insertion = ".align 8\n" + name + ":";
+    std::string insertion = ".align " + std::to_string(alignment) + 
+        "\n" + name + ":";
     for (unsigned int i = 0; i < size; i += 8) {
         insertion += "\n.quad " + std::to_string(value);
     }

@@ -205,8 +205,6 @@ bool StripProfile::arrayExpressionUsesIterator(
     const tac_line_t &arrOp,
     const tac_line_t &next_use
 ) const {
-    INFO_LOG("Next use: %s", TACGenerator::tacLineToString(next_use).c_str());
-
     if (arrOp == next_use) {
         return false;
     } else if (next_use.argument1 == arrOp.argument1) {
@@ -274,13 +272,13 @@ void StripProfile::unroll() {
 
     this->block->getInstructions().clear();
 
-    // Insert vector instructions.
-    this->block->insertInstructions(this->vectorInsts, false);
-
     // Insert serial instructions.
     for (unsigned int i = 0; i < this->factor; i++) {
         this->block->insertInstructions(this->iteration, false);
     }
+
+    // Insert vector instructions.
+    this->block->insertInstructions(this->vectorInsts, false);
 
     this->block->insertInstruction(lastInstructionJmp);
 }

@@ -16,6 +16,10 @@ typedef enum location_type {
 
 class Location {
 public:
+    static std::string largeImmediatesPrefix;
+
+    static std::string getLargeImmediateName(const std::string &previousName);
+
     Location();
     Location(const location_type_t &type);
 

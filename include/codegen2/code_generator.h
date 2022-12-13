@@ -77,6 +77,10 @@ private:
         const tac_line_t &inst
     );
 
+    Location getLargeImmediate(const Location immediate);
+
+    void convertImmediateInto256MemoryRegion(const Location immediate);
+
     RegPtr getRegister(
         const LivenessTable &liveness,
         const std::string &variable, 
