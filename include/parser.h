@@ -1,9 +1,11 @@
 /**
- *  CPSC 323 Compilers and Languages
+ * Performs the syntax directed translation phase of the compiler. This file 
+ * contains aspects of syntax analysis and semantic analysis. The token stream 
+ * that is produced from the lexical analyzer is taken as input and is 
+ * transformed into an abstract syntax tree representation. 
  * 
- *  Dalton Caron, Teaching Associate
- *  dcaron@fullerton.edu, +1 949-616-2699
- *  Department of Computer Science
+ * @file parser.h
+ * @author Dalton Caron
  */
 #ifndef PARSER_H__
 #define PARSER_H__
@@ -15,25 +17,25 @@
 #include <symbol_table.h>
 
 /**
- * Semantic checks to be performed:
- * - Duplicate procedures
- * - Duplicate variables
- * - Undefined procedures
- * - Undefined variables
- * - Number of arguments mismatch
- * - Argument type error
- * - Return type error
- * - Procedure call assignment type error
- * - If statement condition type error
- * - While loop condition type error
- * - Assignment type mismatch
- * - Expression type error
+ * The Parser class facilitates the parsing of the token stream provided from 
+ * the lexical analyzer. It has the dual purpose of performing syntax directed 
+ * translation to produce an abstract syntax tree intermediate representation 
+ * as output while also performing semantic checks and inserting semantic 
+ * information into the symbol table and resulting abstract syntax tree.
  */
 class Parser {
 public:
+    /**
+     * Constructs a representation of the parser on the provided input tokens.
+     * @param tokens Tokenized source code to parse.
+     */
     Parser(const token_stream_t &tokens);
     virtual ~Parser();
 
+    /**
+     * Performs syntax directed translation to produce an abstract syntax tree. 
+     * @return The root node of the generated abstract syntax tree.
+     */
     AST parse();
 private:
     token_t getNextToken();

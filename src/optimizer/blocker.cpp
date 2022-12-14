@@ -11,22 +11,20 @@ Blocker::Blocker(const std::vector<tac_line_t> &instructions) {
     this->computeControlFlowInformation();
 }
 
-/**
- * 1. Identify the leaders in the code. Leaders are instructions that come under 
- * any of the following 3 categories:
- * 
- * a. It is the first instruction. The first instruction is a leader.
- * 
- * b. The target of a conditional or an unconditional goto/jump instruction is 
- * a leader.
- * 
- * c. The instruction that immediately follows a conditional or an unconditional
- * goto/jump instruction is a leader.
- * 
- * 2. Starting from a leader, the set of all following instructions until and 
- * not including the next leader is the basic block corresponding to the 
- * starting leader. Thus every basic block has a leader.
- */
+BlockSet &Blocker::getBlockSet() {
+    return this->basicBlocks;
+}
+
+std::string Blocker::to_string() {
+    std::string result = "";
+    std::for_each(this->basicBlocks.begin(), this->basicBlocks.end(),
+        [&result](BBP block) {
+            result += block->to_string();
+        }
+    );
+    return result;
+}
+
 BlockSet Blocker::computeBasicBlocks(
     const std::vector<tac_line_t> &instructions,
     BBP &firstBlock 
@@ -134,20 +132,6 @@ void Blocker::computeControlFlowInformation() {
 
     previousBlock = nullptr;
     savedPreviousBlock = nullptr;
-}
-
-BlockSet &Blocker::getBlockSet() {
-    return this->basicBlocks;
-}
-
-std::string Blocker::to_string() {
-    std::string result = "";
-    std::for_each(this->basicBlocks.begin(), this->basicBlocks.end(),
-        [&result](BBP block) {
-            result += block->to_string();
-        }
-    );
-    return result;
 }
 
 bool Blocker::isInstructionLeader(

@@ -188,7 +188,6 @@ tac_line_t StripProfile::getNextUseOfResult(
     i++;
 
     while (i != this->iteration.end()) {
-        WARNING_LOG("i %s", TACGenerator::tacLineToString(*i).c_str());
         const tac_line_t &curr_inst = *i;
         if (curr_inst.argument1 == first_inst.result || 
             curr_inst.argument2 == first_inst.result ||

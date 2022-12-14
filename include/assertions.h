@@ -1,9 +1,8 @@
 /**
- *  CPSC 323 Compilers and Languages
+ * A supporting file that provides custom static and dynamic assertions.
  * 
- *  Dalton Caron, Teaching Associate
- *  dcaron@fullerton.edu, +1 949-616-2699
- *  Department of Computer Science
+ * @file assertions.h
+ * @author Dalton Caron
  */
 #ifndef ASSERTIONS_H__
 #define ASSERTIONS_H__

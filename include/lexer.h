@@ -1,9 +1,11 @@
 /**
- *  CPSC 323 Compilers and Languages
+ * The lexer.h file is responsible for classes and functions related to the 
+ * lexical analysis phase of the compiler. Lexical analysis is the process in 
+ * which the input source code is tokenized to be used as the input to 
+ * syntax analysis. 
  * 
- *  Dalton Caron, Teaching Associate
- *  dcaron@fullerton.edu, +1 949-616-2699
- *  Department of Computer Science
+ * @file lexer.h
+ * @author Dalton Caron
  */
 #ifndef LEXER_H__
 #define LEXER_H__
@@ -16,10 +18,12 @@
 // A state is represented as an integer, aliased to this state type.
 typedef int state_t;
 
-// The token class represents the various classes of lexemes that can be 
-// encountered in the source code. Each lexeme will be tagged with one of 
-// these classes. These classes will be important later during parsing, but 
-// the classes also let us know what kind of lexeme we have read.
+/**
+ * The token class represents the various classes of lexemes that can be 
+ * encountered in the source code. Each lexeme will be tagged with one of 
+ * these classes. These classes will be important later during parsing, but 
+ * the classes also let us know what kind of lexeme we have read.
+ */
 typedef enum token_class {
     ERROR = 0,
     IDENTIFIER = 1,
@@ -119,9 +123,11 @@ static std::map<std::string, token_class_t> reserved_words = {
     {"float", FLOAT_TYPE_KEYWORD}
 };
 
-// Stores a lexeme scanned and the information associated with the lexeme.
-// The file, line, and column are for printing error messages with the 
-// location of the lexeme.
+/** 
+ * Stores a lexeme scanned and the information associated with the lexeme.
+ * The file, line, and column are for printing error messages with the 
+ * location of the lexeme.
+ */
 typedef struct token {
 public:
     token_class_t type;
@@ -131,7 +137,7 @@ public:
     int column;
 } token_t;
 
-// The Scanner takes an input file and reads it character by character.
+/** The Scanner takes an input file and reads it character by character. */
 class Scanner {
 public:
     /**
@@ -158,10 +164,19 @@ public:
      */
     char peek() const;
 
+    /**
+     * @return The current column within the source file.
+     */
     int getColumn() const { return this->current_column; };
 
+    /**
+     * @return The current line within the source file.
+     */
     int getLine() const { return this->current_line; };
 
+    /**
+     * @return The path of the current file.
+     */
     std::string getFilePath() const { return this->file_path; };
 
 private:
@@ -177,6 +192,11 @@ private:
     std::string source;
 };
 
+/**
+ * The scanning table represents a deterministic finite state machine and is 
+ * used to recognize tokens from the input source code. This is associated with 
+ * a partner TokenTable.
+ */
 class ScanningTable {
 public:
     /**
@@ -231,6 +251,10 @@ private:
     std::map<std::pair<state_t, char>, state_t> state_symbol_to_state;
 };
 
+/** 
+ * Represents a table that denotes what final states are associated with 
+ * a token class. This is associated with a partner ScanningTable.
+ */
 class TokenTable {
 public:
     /**
@@ -266,6 +290,9 @@ private:
 // Aliases a vector of token types into a token stream.
 typedef std::vector<token_t> token_stream_t;
 
+/**
+ * The Lexer performs lexical analysis upon an input source code.
+ */
 class Lexer {
 public:
     /** Initializes the Lexer. */

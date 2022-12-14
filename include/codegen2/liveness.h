@@ -1,3 +1,10 @@
+/**
+ * Contains classes and functions pertaining to liveness analysis for 
+ * context sensitive code generation.
+ * 
+ * @file liveness.h
+ * @author Dalton Caron
+ */
 #ifndef LIVENESS_H__
 #define LIVENESS_H__
 
@@ -9,6 +16,7 @@
 
 using STID = signed int;
 
+/** Liveness holds liveness and next-use informaion for a single variable. */
 class Liveness {
 public:
     bool isLive() const { return this->live; }
@@ -27,6 +35,7 @@ private:
     STID next_use;
 };
 
+/** The liveness map holds liveness information for a single instruction. */
 class LivenessMap {
 public:
     LivenessMap();
@@ -42,11 +51,27 @@ private:
     std::map<std::string, Liveness> entries;
 };
 
+/**
+ * The LivenessTable contains liveness information for all instructions 
+ * contained within a single basic block. This information is used to help 
+ * facilitate register allocation during context sensitive code generation.
+ */
 class LivenessTable {
 public:
     LivenessTable() = delete;
+
+    /**
+     * Computes the liveness and next-use information for all instructions 
+     * that need to utilize registers within the basic block.
+     */
     LivenessTable(const BBP bb);
 
+    /**
+     * Fetches the LivenessMap associated with an instrution in the basic block.
+     * 
+     * @param tid The instruction ID to fetch information for.
+     * @return The LivenessMap containing said information.
+     */
     const LivenessMap& getLivenessAndNextUse(const STID tid) const;
 private:
     /**

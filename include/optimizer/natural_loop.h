@@ -1,3 +1,11 @@
+/**
+ * Contains the class that represents a natural loop. A natural loop is a 
+ * back edge in the CFG where the loop footer dominates the loop header and 
+ * the loop only has a single entrance.
+ * 
+ * @file natural_loop.h
+ * @author Dalton Caron
+ */
 #ifndef NATURAL_LOOP_H__
 #define NATURAL_LOOP_H__
 
@@ -24,8 +32,18 @@ public:
     std::string constant;
     struct induction_variable *previousInductionVar;
 
+    /** Default contructor for initialization purposes. */
     induction_variable() {}
 
+    /**
+     * Constructs an induction variable representation.
+     * @param is_simple True if in the form X := X + C, else false.
+     * @param inductionVar The name of the induction variable.
+     * @param constant The name of the constant variable.
+     * @param previous The previous induction variable. Is only populated when 
+     * the variable is not simple. Variables that are not simple are linked 
+     * lists of induction variable objects.
+     */
     induction_variable(
         bool is_simple, 
         std::string inductionVar, 
@@ -52,6 +70,16 @@ public:
  */
 class NaturalLoop {
 public:
+    /**
+     * Construct a representation of a natural loop that includes the back edge 
+     * and other important meta data computed prior.
+     * 
+     * @param header Loop header.
+     * @param footer Loop footer.
+     * @param reach Reaching definition analysis results.
+     * @param dom Dominator tree of the CFG the loop is member of.
+     * @param allBlocks A reference to the collection of all basic blocks.
+     */
     NaturalLoop(
         BBP header, 
         BBP footer, 
@@ -123,19 +151,43 @@ public:
      */
     bool isSimpleLoop();
 
+    /** 
+     * @param value The variable to check.
+     * @return True if a variable is loop invariant, else false. 
+     */
     bool isInvariant(const std::string &value) const;
 
+    /** 
+     * @param value The variable to check.
+     * @return True if a variable is an induction variable, else false. 
+     */
     bool isInductionVariable(const std::string &value) const;
 
+    /** 
+     * @param value The variable to check.
+     * @return True if a variable is a simple induction variable, else false. 
+     */
     bool isSimpleInductionVariable(const std::string &value) const;
 
+    /**
+     * @param variable The variable to check.
+     * @return True if the variable is never defined in the loop, else false.
+     */
     bool isNeverDefinedInLoop(const std::string &variable) const;
 
+    /**
+     * Returns the loop exit. Assumes the loop only has one exit.
+     * @return The loop exit.
+     */
     BBP getExit() const;
 
+    /** @return The loop header. */
     const BBP getHeader() const;
+
+    /** @return The loop footer. */
     const BBP getFooter() const;
 
+    /** @return A back edge tuple representation of the loop in string form. */
     const std::string to_string() const;
 private:
     void forEachBBInBodyInternal(

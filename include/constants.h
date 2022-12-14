@@ -1,9 +1,7 @@
 /**
- *  CPSC 323 Compilers and Languages
- * 
- *  Dalton Caron, Teaching Associate
- *  dcaron@fullerton.edu, +1 949-616-2699
- *  Department of Computer Science
+ * This file stores compile time constants in global scope.
+ * @file constants.h
+ * @author Dalton Caron
  */
 #ifndef CONSTANTS_H__
 #define CONSTANTS_H__
@@ -29,5 +27,7 @@
 // known at compile time and not during execution. An example of this may 
 // be to ensure that a structure is the expected size during compilation.
 #define STATIC_ASSERTIONS_ENABLED 1
+
+extern bool AUTOMATIC_VECTORIZATION_ENABLED;
 
 #endif

@@ -25,14 +25,14 @@ CFG::CFG(BlockSet &allBlocks, std::string &name, BBP firstBlock) : name(name),
         }
         printf("Reach Analysis\n%s\n", this->reach.to_string().c_str());
 
-        #ifdef AUTOMATIC_VECTORIZATION_ENABLED
-        for (NaturalLoop &loop : nloops) {
-            LoopVectorizer(loop).vectorize();
-        }
-        #endif
+        if (AUTOMATIC_VECTORIZATION_ENABLED) {
+            for (NaturalLoop &loop : nloops) {
+                LoopVectorizer(loop).vectorize();
+            }
 
-        INFO_LOG("CFG after vectorization");
-        printf("%s\n\n", this->to_graph().c_str());
+            INFO_LOG("CFG after vectorization");
+            printf("%s\n\n", this->to_graph().c_str());
+        }
     }
 
 BBP CFG::getEntryBlock() const {

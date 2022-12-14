@@ -108,10 +108,6 @@ Location &AddressTable::getLocation(const std::string &variable) {
     return this->table.at(variable);
 }
 
-bool AddressTable::varIsInRegOrMem(const std::string &variable) const {
-    return this->table.count(variable) > 0;
-}
-
 bool AddressTable::isInRegister(const std::string &variable) const {
     return this->table.count(variable) > 0 
         && this->table.at(variable).getType() == LT_REGISTER;

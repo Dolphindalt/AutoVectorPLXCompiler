@@ -1,3 +1,10 @@
+/**
+ * This file contains classes and functions related to x86_64 registers, 
+ * including the register class itself and the register allocation table.
+ * 
+ * @file registers.h
+ * @author Dalton Caron
+ */
 #ifndef REGISTERS_H__
 #define REGISTERS_H__
 
@@ -12,11 +19,16 @@ class Register;
 
 using RegPtr = std::shared_ptr<Register>;
 
+// Denotes the type of registers being operated upon.
+// The distinction is required as many registers are instruction set extensions.
 typedef enum register_type {
     GPR,    // General purpose registers (ax, eax, rax).
     AVX     // AVX registers (xmm, ymm).
 } register_type_t;
 
+/**
+ * Represents a Register in the x86_64 architecture.
+ */
 class Register {
 public:
     Register() = delete;
@@ -34,11 +46,15 @@ public:
         return this->getName() == rhs.getName();
     }
 private:
-    std::string name;
+    std::string name = "";
 };
 
 class RegisterAllocationTable;
 
+/**
+ * Registers is a static class that provides access to the various x86_64 
+ * registers and collections of said registers.
+ */
 class Registers {
 public:
     Registers() = delete;
@@ -51,6 +67,11 @@ private:
     friend class RegisterAllocationTable;
 };
 
+/**
+ * The RegisterAllocationTable is responsible for tracking what variables and 
+ * values are located within what registers as well as what registers are in 
+ * use or are currently unused.
+ */
 class RegisterAllocationTable {
 public:
     RegisterAllocationTable();

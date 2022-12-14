@@ -1,9 +1,9 @@
 /**
- *  CPSC 323 Compilers and Languages
+ * This file holds utility functions that do not have a good home anywhere else 
+ * in the program source code.
  * 
- *  Dalton Caron, Teaching Associate
- *  dcaron@fullerton.edu, +1 949-616-2699
- *  Department of Computer Science
+ * @file utilities.h
+ * @author Dalton Caron
  */
 #ifndef UTILITIES_H__
 #define UTILITIES_H__
@@ -14,6 +14,7 @@
 #include <assertions.h>
 #include <logging.h>
 
+/** Reads CSV files. */
 class CsvReader {
     public:
         CsvReader(const std::string path, const char separator=',');

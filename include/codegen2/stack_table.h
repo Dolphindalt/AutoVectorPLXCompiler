@@ -1,3 +1,10 @@
+/**
+ * The stack table file contains the StackTable class and is responsible for 
+ * tracking what is on the stack at all times.
+ * 
+ * @file stack_table.h
+ * @author Dalton Caron
+ */
 #ifndef STACK_TABLE_H__
 #define STACK_TABLE_H__
 
@@ -7,6 +14,10 @@
 
 using StackAddr = unsigned int;
 
+/**
+ * The stack table simulates the program stack that is a feature of the 
+ * x86_64 runtime. 
+ */
 class StackTable {
 public:
     StackTable();

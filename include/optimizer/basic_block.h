@@ -1,3 +1,12 @@
+/**
+ * This file contains the functionality associated with individual basic blocks.
+ * 
+ * A basic block is the smallest unit of code that is interrupted without 
+ * interruption by control flow changing during execution.
+ * 
+ * @file basic_block.h
+ * @author Dalton Caron
+ */
 #ifndef BASIC_BLOCK_H__
 #define BASIC_BLOCK_H__
 
@@ -16,13 +25,30 @@ auto inline set_id_cmp = [](tac_line_t a, tac_line_t b) {
 
 using TIDSet = std::set<tac_line_t, decltype(set_id_cmp)>;
 
+/**
+ * Represents a unit of code that is executed without interruption.
+ */
 class BasicBlock {
 public:
+    /** 
+     * Resets basic block global state for when basic blocks must be recomputed. 
+     */
     static void resetGlobalState();
+
+    /** Number of functions that exist in the global basic block collection. */
     static unsigned int functionCount;
+
+    /** A set of all variables defined in basic blocks. */
     static TIDSet globalVarDefinitions;
 
+    /** Constructs a basic block with a unique major ID. */
     BasicBlock();
+
+    /**
+     * BasicBlock copy constructor.
+     * @param newMajorId The new major ID of the basic block.
+     * @param copy The block to copy.
+    */
     BasicBlock(
         const unsigned int newMajorId, 
         const BBP copy

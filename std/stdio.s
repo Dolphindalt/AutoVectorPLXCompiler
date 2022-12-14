@@ -13,7 +13,7 @@ write_pl_0:
     pushq $0x0d     # push carrige return
     addq $16, %r9
 
-buffer_loop_fu4wyuuysruf:
+buffer_loop:
     movq $10, %rcx   # value to divide by
     movq $0, %rdx    
     div %rcx
@@ -24,17 +24,17 @@ buffer_loop_fu4wyuuysruf:
     addq $8, %r9
 
     cmp $0, %rax
-    jnz buffer_loop_fu4wyuuysruf
+    jnz buffer_loop
 
     test %r10, %r10
-    jns add_sign_fwtnbnknmtyf828
+    jns add_sign
 
     addq $8, %r9
     pushq $45        # add the negative sign
 
-add_sign_fwtnbnknmtyf828:
+add_sign:
 
-print_loop_fhtmftu3ufwtt:
+print_loop:
     movq $1, %rax    # system call write
     movq $1, %rdi    # file handle
     movq %rsp, %rsi  # message
@@ -44,7 +44,7 @@ print_loop_fhtmftu3ufwtt:
     addq $8, %rsp
     subq $8, %r9
     cmp $0, %r9
-    jnz print_loop_fhtmftu3ufwtt
+    jnz print_loop
 
     movq %rbp, %rsp
     popq %rbp

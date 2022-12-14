@@ -1,3 +1,11 @@
+/**
+ * This file is the main entry point for the code generation compilation phase. 
+ * The primary input is three address code that is converted into assembly.
+ * The code that is generated is x86_64 assembly code.
+ * 
+ * @file code_generator.h
+ * @author Dalton Caron
+ */
 #ifndef CODE_GENERATOR_H__
 #define CODE_GENERATOR_H__
 
@@ -11,10 +19,21 @@
 #include <codegen2/code_gen_context.h>
 #include <optimizer/block_types.h>
 
+/**
+ * Generates assembly code from the three address code intermediate 
+ * representation.
+ */
 class CodeGenerator {
 public:
+    /** Default constructor for stack initialization. */
     CodeGenerator();
 
+    /** 
+     * Generates assembly code to a file from the input three address code in 
+     * the form of basic blocks. 
+     * 
+     * @param blocks Basic blocks to translate into assembly.
+     */
     void generate(const BlockSet &blocks);
 private:
     void generateFromBB(const BBP &bb);

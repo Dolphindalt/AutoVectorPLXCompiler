@@ -1,3 +1,10 @@
+/**
+ * The preprocessor performs transformations on three address code before it 
+ * is optimized. 
+ * 
+ * @file preprocessing.h
+ * @author Dalton Caron
+*/
 #ifndef PREPROCESSOR_H
 #define PREPROCESSOR_H
 
@@ -5,8 +12,18 @@
 #include <vector>
 #include <set>
 
+/**
+ * The preprocessor performs manual rewrite rules on the input three 
+ * address code instructions. Syntax directed translation often generates 
+ * redundant expressions, so these rewrite rules eliminate the simple 
+ * redundant expressions. 
+ */
 class Preprocessor {
 public:
+    /** 
+     * Constructs and performs the preprocessing on the provided instructions. 
+     * @param instructions Three address codes to preprocess in-place.
+     */
     Preprocessor(std::vector<tac_line_t> &instructions);
 private:
     void preprocess();

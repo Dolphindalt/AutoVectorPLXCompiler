@@ -1,3 +1,10 @@
+/**
+ * Contains types that depend on basic blocks but implement special 
+ * templated functionality.
+ * 
+ * @file block_types.h
+ * @author Dalton Caron
+ */
 #ifndef BLOCK_TYPES_H__
 #define BLOCK_TYPES_H__
 

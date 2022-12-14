@@ -1,15 +1,11 @@
 /**
- *  CPSC 323 Compilers and Languages
+ * A supporting file that offers logging utilities.
  * 
- *  Dalton Caron, Teaching Associate
- *  dcaron@fullerton.edu, +1 949-616-2699
- *  Department of Computer Science
+ * @file logging.h
+ * @author Dalton Caron
  */
 #ifndef LOGGING_H__
 #define LOGGING_H__
-
-// Please feel free to use the logging utilities in this file to make your 
-// debugging easier!
 
 #ifdef __cplusplus
 extern "C" {

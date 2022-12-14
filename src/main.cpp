@@ -18,13 +18,17 @@
 const char *argp_program_version = "Dalton\'s Toy Compiler";
 const char *argp_program_bug_address = "dpcaron@csu.fullerton.edu";
 static char doc[] = "A compiler program for demonstrating an optimizer.";
-static char args_doc[] = "<source code file>";
+static char args_doc[] = "<source code file> [-v]";
 static struct argp_option options[] = {
+    {"vectorize", 'v', 0, 0, 
+        "Boolean flag for enabling automatic vectorization"},
     { 0 }
 };
 
+/** Program input arguments structure. */
 struct arguments {
     char *args[1];
+    bool vectorize;
 };
 
 struct arguments arguments;
@@ -32,6 +36,9 @@ struct arguments arguments;
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     struct arguments *arguments = (struct arguments *) state->input;
     switch (key) {
+        case 'v':
+            arguments->vectorize = true;
+            break;
         case ARGP_KEY_ARG:
             if (state->arg_num >= 1) {
                 // To many arguments.
@@ -53,11 +60,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
 static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
 
+bool AUTOMATIC_VECTORIZATION_ENABLED = false;
+
 int main(int argc, char *argv[]) {
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
     char *source_file = arguments.args[0];
+    AUTOMATIC_VECTORIZATION_ENABLED = arguments.vectorize;
 
     if (source_file == NULL) {
         (void) printf("Please provide a source file.\n");
