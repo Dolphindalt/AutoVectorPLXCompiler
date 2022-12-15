@@ -128,7 +128,7 @@ public:
 
     /**
      * Performs a postfix order tree traversal of the abstract syntax tree and 
-     * peforms the provided actin on each node encountered.
+     * peforms the provided action on each node encountered.
      * @param parent The root node of the tree or subtree to traverse.
      * @param action A function describing what operations to perform on a 
      * node that is visited.

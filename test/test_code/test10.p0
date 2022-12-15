@@ -3,7 +3,7 @@ begin
     i := 0;
     while i < 2 do
     begin
-        a[i] := i;
+        a[i] := 255;
         i := i + 1
     end;
     !a[0];

@@ -44,7 +44,7 @@ void CodeGenContext::insertGlobalArray(
     const unsigned int size
 ) {
     const std::string insertion = 
-        ".align 8\n" + name + ":\n.zero " + std::to_string(size);
+        ".align 32\n" + name + ":\n.zero " + std::to_string(size);
     this->dataSection.push_back(insertion);
 }
 
