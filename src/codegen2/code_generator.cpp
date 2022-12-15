@@ -23,11 +23,11 @@ void CodeGenerator::generateFromBB(const BBP &bb) {
     }
 
     if (bb->changesControlAtEnd()) {
-        this->freeRegisters();
+        this->freeRegisters(liveness);
         this->generateFrom3AC(*(bb->getInstructions().end() - 1), liveness);
     } else {
         this->generateFrom3AC(*(bb->getInstructions().end() - 1), liveness);
-        this->freeRegisters();
+        this->freeRegisters(liveness);
     }
 }
 
@@ -501,11 +501,14 @@ void CodeGenerator::storeVariable(
 
 void CodeGenerator::storeVariableInGlobalMemory(
     const std::string &variable, 
-    const RegPtr &reg
+    const RegPtr &reg,
+    const bool updated
 ) {
-    const std::string storeInst = 
-        "\tmovq " + reg->getName() + ", " + variable + "(%rip)";
-    this->context.insertText(storeInst);
+    if (updated) {
+        const std::string storeInst = 
+            "\tmovq " + reg->getName() + ", " + variable + "(%rip)";
+        this->context.insertText(storeInst);
+    }
     this->regTable.freeRegister(reg);
     this->addressTable
         .insert(variable, Location(LT_MEMORY_GLOBAL)
@@ -548,7 +551,8 @@ void CodeGenerator::storeVariableInStack(
 
 void CodeGenerator::storeVariableInStack(
     const std::string &variable, 
-    const RegPtr &reg
+    const RegPtr &reg,
+    const bool updated
 ) {
     unsigned int offset;
 
@@ -625,16 +629,20 @@ void CodeGenerator::popRegisters(std::stack<RegPtr> &toPop) {
     }
 }
 
-void CodeGenerator::freeRegisters() {
+void CodeGenerator::freeRegisters(const LivenessTable &liveness) {
     const auto registerLocations = 
         this->addressTable.getValueAndLocationInRegisters();
     
     for (const std::pair<std::string, Location> &p : registerLocations) {
         if (this->globalTable.isGlobal(p.first)) {
-            this->storeVariableInGlobalMemory(p.first, p.second.getRegister());
+            this->storeVariableInGlobalMemory(
+                p.first, p.second.getRegister(), liveness.isUpdated(p.first)
+            );
         } 
         else if (this->stackTable.inStack(p.first)) {
-            this->storeVariableInStack(p.first, p.second.getRegister());
+            this->storeVariableInStack(
+                p.first, p.second.getRegister(), liveness.isUpdated(p.first)
+            );
         }
     }
 

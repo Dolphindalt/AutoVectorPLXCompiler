@@ -73,6 +73,15 @@ public:
      * @return The LivenessMap containing said information.
      */
     const LivenessMap& getLivenessAndNextUse(const STID tid) const;
+
+    /**
+     * Determines if the value of a variable within the context of the basic 
+     * block is updated.
+     * 
+     * @param variable The variable to check.
+     * @return True if the variable is updated, else false.
+     */
+    bool isUpdated(const std::string &variable) const;
 private:
     /**
      * Algorithm to compute liveness:
@@ -127,6 +136,7 @@ private:
     ) const;
 
     std::map<TID, LivenessMap> table;
+    const BBP block;
 };
 
 #endif

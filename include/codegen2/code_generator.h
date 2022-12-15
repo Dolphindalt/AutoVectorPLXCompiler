@@ -128,7 +128,8 @@ private:
 
     void storeVariableInGlobalMemory(
         const std::string &variable, 
-        const RegPtr &reg
+        const RegPtr &,
+        const bool updated=true
     );
 
     void storeVariableInGlobalMemoryInit(
@@ -143,7 +144,8 @@ private:
 
     void storeVariableInStack(
         const std::string &variable, 
-        const RegPtr &reg
+        const RegPtr &reg,
+        const bool updated=true
     );
 
     void insertGlobal(const std::string &variable);
@@ -155,7 +157,7 @@ private:
 
     void popRegisters(std::stack<RegPtr> &toPop);
 
-    void freeRegisters();
+    void freeRegisters(const LivenessTable &liveness);
 
     RegisterAllocationTable regTable;
     AddressTable addressTable;

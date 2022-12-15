@@ -30,12 +30,16 @@ std::string LivenessMap::to_string() const {
     return result;
 }
 
-LivenessTable::LivenessTable(const BBP bb) {
+LivenessTable::LivenessTable(const BBP bb) : block(bb) {
     this->computeLiveness(bb);
 }
 
 const LivenessMap& LivenessTable::getLivenessAndNextUse(const STID tid) const {
     return this->table.at(tid);
+}
+
+bool LivenessTable::isUpdated(const std::string &variable) const {
+    return !this->block->isNeverDefined(variable);
 }
 
 void LivenessTable::computeLiveness(const BBP bb) {
