@@ -1,0 +1,9 @@
+var int[50] a, int i;
+begin
+    i := i + 0;
+    while i < 50 do
+    begin
+        a[i] := 10;
+        i := i + 1
+    end
+end.
